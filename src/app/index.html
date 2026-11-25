@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Print Model Viewer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-layout="pane">
+    <div id="app" class="viewer-shell">
+      <!-- Top Bar: Model Slot Tabs (up to 5) + Controls -->
+      <header class="top-bar">
+        <div class="slots-row" id="slotsRow" role="tablist" aria-label="3D Models"></div>
+
+        <div class="controls-row">
+          <button
+            id="btnColorToggle"
+            class="ctrl-btn active"
+            title="Toggle multi-color ON vs neutral grey OFF (C)"
+            type="button"
+          >
+            <span class="dot dot-color"></span>
+            <span id="lblColorToggle">Color</span>
+          </button>
+
+          <button
+            id="btnBambuToggle"
+            class="ctrl-btn"
+            title="Match colors to closest official Bambu Lab filaments (B)"
+            type="button"
+          >
+            <span class="dot dot-bambu"></span>
+            <span>Bambu Colors</span>
+          </button>
+
+          <button
+            id="btnBackdropToggle"
+            class="ctrl-btn"
+            title="Toggle Pure Black vs Natural Oak Desk backdrop (D)"
+            type="button"
+          >
+            <span id="lblBackdropToggle">Black BG</span>
+          </button>
+
+          <button
+            id="btnMatToggle"
+            class="ctrl-btn hidden"
+            title="Toggle grey desk mat ON/OFF (M)"
+            type="button"
+          >
+            <span id="lblMatToggle">Mat: Off</span>
+          </button>
+
+          <button
+            id="btnResetView"
+            class="ctrl-btn ctrl-icon"
+            title="Reset camera angle and object rotation (R)"
+            type="button"
+          >
+            ↺
+          </button>
+
+          <div class="export-menu-wrap" id="exportMenuWrap">
+            <button
+              id="btnExportMenu"
+              class="ctrl-btn ctrl-export"
+              title="Export active 3D model for Bambu Studio multi-color printing (.3mf) or single-color (.stl)"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <span>Export</span>
+              <span class="caret">▾</span>
+            </button>
+            <div id="exportDropdown" class="export-dropdown hidden" role="menu">
+              <button type="button" class="export-item" data-export="bambu-3mf" role="menuitem">
+                <div class="export-item-head">
+                  <span class="export-item-title">Bambu Multi-Color (.3mf)</span>
+                  <span class="export-badge">Recommended</span>
+                </div>
+                <div class="export-item-desc">AMS-ready 3MF with Bambu Studio filament metadata &amp; colors</div>
+              </button>
+              <button type="button" class="export-item" data-export="bambu-3mf-matched" role="menuitem">
+                <div class="export-item-head">
+                  <span class="export-item-title">Bambu Spool-Matched (.3mf)</span>
+                </div>
+                <div class="export-item-desc">Snaps all colors to closest official Bambu Lab PLA filaments</div>
+              </button>
+              <button type="button" class="export-item" data-export="stl" role="menuitem">
+                <div class="export-item-head">
+                  <span class="export-item-title">Single-Color Mesh (.stl)</span>
+                </div>
+                <div class="export-item-desc">Standard binary STL (mm, Z-up, resting flat on build plate)</div>
+              </button>
+              <div class="export-footer">Saves next to source file (or ~/Downloads)</div>
+            </div>
+          </div>
+
+          <button
+            id="btnPopSidePane"
+            class="ctrl-btn ctrl-accent hidden"
+            title="Open these models in the full-height Side Panel"
+            type="button"
+          >
+            Side Panel ↗
+          </button>
+        </div>
+      </header>
+
+      <!-- Main 3D WebGL Viewport -->
+      <main class="stage-wrap" id="stageWrap">
+        <div id="canvasHost" class="canvas-host"></div>
+
+        <!-- Subtle floating interaction mode badge -->
+        <div id="interactionBadge" class="interaction-badge">
+          Drag model: spin object • Drag background: orbit camera
+        </div>
+
+        <!-- Export confirmation toast -->
+        <div id="exportToast" class="export-toast hidden" role="status" aria-live="polite">
+          <div class="export-toast-head">
+            <span id="exportToastTitle" class="export-toast-title">Exported</span>
+            <button id="btnCloseToast" class="toast-close" type="button" aria-label="Dismiss">✕</button>
+          </div>
+          <div id="exportToastMeta" class="export-toast-meta"></div>
+          <div id="exportToastPath" class="export-toast-path"></div>
+          <div class="export-toast-actions">
+            <button id="btnCopyExportPath" class="toast-btn" type="button">Copy Path</button>
+          </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loadingOverlay" class="overlay hidden">
+          <div class="loader-card">
+            <div class="spinner"></div>
+            <div id="loadingLabel" class="loader-label">Loading 3D model…</div>
+            <div class="progress-track">
+              <div id="loadingBar" class="progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error overlay -->
+        <div id="errorOverlay" class="overlay hidden">
+          <div class="loader-card error-card">
+            <div class="error-title">Could not load 3D model</div>
+            <div id="errorDetail" class="error-detail"></div>
+          </div>
+        </div>
+
+        <!-- Empty state / Drag-and-drop zone (when opened manually from Side Panel "+" menu) -->
+        <div id="emptyOverlay" class="overlay hidden">
+          <div class="empty-card">
+            <div class="empty-title">3D Print Model Viewer</div>
+            <div class="empty-sub">
+              Ask the agent to open up to 5 <code>.3mf</code>, <code>.stl</code>, <code>.obj</code>,
+              <code>.glb</code>, or <code>.ply</code> files — or drop files here to inspect locally.
+            </div>
+            <label class="drop-btn">
+              Choose up to 5 local 3D files
+              <input id="localFileInput" type="file" accept=".stl,.3mf,.glb,.gltf,.obj,.ply" multiple hidden />
+            </label>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bottom Strip: Swatches, Bambu Filament Selector & Dimensions -->
+      <footer class="bottom-bar" id="bottomBar">
+        <div class="swatches-wrap">
+          <div id="swatchList" class="swatch-list"></div>
+          <select
+            id="bambuScopeSelect"
+            class="scope-select hidden"
+            title="Bambu Lab filament series to match against"
+          >
+            <option value="basic-matte">Bambu PLA Basic + Matte</option>
+            <option value="matte">Bambu PLA Matte only</option>
+            <option value="basic">Bambu PLA Basic only</option>
+            <option value="all">All Bambu PLA (incl. Silk+)</option>
+          </select>
+        </div>
+
+        <div class="meta-strip">
+          <span id="metaFormat" class="meta-pill">—</span>
+          <span id="metaDims" class="meta-text">—</span>
+          <span id="metaTris" class="meta-text">—</span>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

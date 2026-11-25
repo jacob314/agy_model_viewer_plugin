@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "model3d_viewer": {
+      "command": "bash",
+      "args": [
+        "${PLUGIN_ROOT}/bin/model3d-viewer-server",
+        "--data-dir=${PLUGIN_DATA}"
+      ]
+    }
+  }
+}

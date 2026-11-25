@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#00AE42"/>
+    </linearGradient>
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF6A13"/>
+      <stop offset="100%" stop-color="#C12E1F"/>
+    </linearGradient>
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5E43B7"/>
+      <stop offset="100%" stop-color="#0078BF"/>
+    </linearGradient>
+  </defs>
+  <!-- ~10% padding baked in; clean isometric 3D print cube with layer lines -->
+  <g stroke="#0F172A" stroke-width="3.5" stroke-linejoin="round">
+    <polygon points="64,16 108,40 64,64 20,40" fill="url(#topFace)"/>
+    <polygon points="20,40 64,64 64,112 20,88" fill="url(#leftFace)"/>
+    <polygon points="108,40 64,64 64,112 108,88" fill="url(#rightFace)"/>
+  </g>
+  <!-- Crisp subtle print layer grooves -->
+  <g stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2" fill="none" stroke-linecap="round">
+    <polyline points="26,56 64,77 102,56"/>
+    <polyline points="26,72 64,93 102,72"/>
+  </g>
+  <!-- Highlight rim for dark & light theme contrast -->
+  <polygon points="64,16 108,40 108,88 64,112 20,88 20,40" fill="none" stroke="#F8FAFC" stroke-opacity="0.35" stroke-width="2"/>
+</svg>
