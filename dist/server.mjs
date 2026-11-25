@@ -23693,15 +23693,12 @@ function decimatePrimitive(prim, targetTris) {
   const gridRes = Math.max(40, Math.min(260, Math.round(Math.sqrt(targetTris * 0.24))));
   const invCell = gridRes / maxSpan;
   const vCount = pos.length / 3;
-  const origToCluster = new Int32Array(vCount);
-  const cellMap = /* @__PURE__ */ new Map();
-  const sumX = [];
-  const sumY = [];
-  const sumZ = [];
-  const sumU = [];
-  const sumV = [];
-  const sumC = [];
-  const counts = [];
+  const origToSpatial = new Int32Array(vCount);
+  const spatialMap = /* @__PURE__ */ new Map();
+  const spSumX = [];
+  const spSumY = [];
+  const spSumZ = [];
+  const spCount = [];
   for (let i = 0; i < vCount; i++) {
     const x = pos[i * 3];
     const y = pos[i * 3 + 1];
@@ -23709,72 +23706,110 @@ function decimatePrimitive(prim, targetTris) {
     const gx = Math.floor((x - minX) * invCell);
     const gy = Math.floor((y - minY) * invCell);
     const gz = Math.floor((z - minZ) * invCell);
-    let key;
-    if (uvs) {
-      const u = uvs[i * 2];
-      const v = uvs[i * 2 + 1];
-      const uq = Math.floor(u * 12);
-      const vq = Math.floor(v * 12);
-      key = `${gx},${gy},${gz}|${uq},${vq}`;
+    const key = `${gx},${gy},${gz}`;
+    let sIdx = spatialMap.get(key);
+    if (sIdx === void 0) {
+      sIdx = spCount.length;
+      spatialMap.set(key, sIdx);
+      spSumX.push(x);
+      spSumY.push(y);
+      spSumZ.push(z);
+      spCount.push(1);
     } else {
-      key = `${gx},${gy},${gz}`;
+      spSumX[sIdx] += x;
+      spSumY[sIdx] += y;
+      spSumZ[sIdx] += z;
+      spCount[sIdx] += 1;
     }
-    let cIdx = cellMap.get(key);
-    if (cIdx === void 0) {
-      cIdx = counts.length;
-      cellMap.set(key, cIdx);
-      sumX.push(x);
-      sumY.push(y);
-      sumZ.push(z);
+    origToSpatial[i] = sIdx;
+  }
+  const origToOut = new Int32Array(vCount);
+  const outSpatialId = [];
+  const outSumU = [];
+  const outSumV = [];
+  const outSumC = [];
+  const outCount = [];
+  const spatialToOutList = new Array(spCount.length);
+  const UV_SEAM_SQ = 0.06 * 0.06;
+  for (let i = 0; i < vCount; i++) {
+    const sIdx = origToSpatial[i];
+    let list = spatialToOutList[sIdx];
+    if (!list) {
+      list = [];
+      spatialToOutList[sIdx] = list;
+    }
+    const u = uvs ? uvs[i * 2] : 0;
+    const v = uvs ? uvs[i * 2 + 1] : 0;
+    let chosen = -1;
+    if (!uvs) {
+      chosen = list.length > 0 ? list[0] : -1;
+    } else {
+      for (let j = 0; j < list.length; j++) {
+        const oid = list[j];
+        const inv = 1 / outCount[oid];
+        const du = u - outSumU[oid] * inv;
+        const dv = v - outSumV[oid] * inv;
+        if (du * du + dv * dv <= UV_SEAM_SQ) {
+          chosen = oid;
+          break;
+        }
+      }
+    }
+    if (chosen === -1) {
+      chosen = outCount.length;
+      list.push(chosen);
+      outSpatialId.push(sIdx);
       if (uvs) {
-        sumU.push(uvs[i * 2]);
-        sumV.push(uvs[i * 2 + 1]);
+        outSumU.push(u);
+        outSumV.push(v);
       }
       if (cols) {
-        for (let k = 0; k < cComp; k++) sumC.push(cols[i * cComp + k]);
+        for (let k = 0; k < cComp; k++) outSumC.push(cols[i * cComp + k]);
       }
-      counts.push(1);
+      outCount.push(1);
     } else {
-      sumX[cIdx] += x;
-      sumY[cIdx] += y;
-      sumZ[cIdx] += z;
       if (uvs) {
-        sumU[cIdx] += uvs[i * 2];
-        sumV[cIdx] += uvs[i * 2 + 1];
+        outSumU[chosen] += u;
+        outSumV[chosen] += v;
       }
       if (cols) {
-        for (let k = 0; k < cComp; k++) sumC[cIdx * cComp + k] += cols[i * cComp + k];
+        for (let k = 0; k < cComp; k++) outSumC[chosen * cComp + k] += cols[i * cComp + k];
       }
-      counts[cIdx] += 1;
+      outCount[chosen] += 1;
     }
-    origToCluster[i] = cIdx;
+    origToOut[i] = chosen;
   }
   const outIdx = [];
   const origIdx = prim.indices;
   for (let t = 0; t < triCount; t++) {
-    const i0 = origToCluster[origIdx[t * 3]];
-    const i1 = origToCluster[origIdx[t * 3 + 1]];
-    const i2 = origToCluster[origIdx[t * 3 + 2]];
-    if (i0 !== i1 && i1 !== i2 && i2 !== i0) {
-      outIdx.push(i0, i1, i2);
+    const a = origIdx[t * 3];
+    const b = origIdx[t * 3 + 1];
+    const c = origIdx[t * 3 + 2];
+    const s0 = origToSpatial[a];
+    const s1 = origToSpatial[b];
+    const s2 = origToSpatial[c];
+    if (s0 !== s1 && s1 !== s2 && s2 !== s0) {
+      outIdx.push(origToOut[a], origToOut[b], origToOut[c]);
     }
   }
-  const newVCount = counts.length;
+  const newVCount = outCount.length;
   const outPos = new Float32Array(newVCount * 3);
   const outUvs = uvs ? new Float32Array(newVCount * 2) : null;
   const outCols = cols ? new Float32Array(newVCount * cComp) : null;
   for (let i = 0; i < newVCount; i++) {
-    const inv = 1 / counts[i];
-    outPos[i * 3] = sumX[i] * inv;
-    outPos[i * 3 + 1] = sumY[i] * inv;
-    outPos[i * 3 + 2] = sumZ[i] * inv;
+    const sIdx = outSpatialId[i];
+    const spInv = 1 / spCount[sIdx];
+    outPos[i * 3] = spSumX[sIdx] * spInv;
+    outPos[i * 3 + 1] = spSumY[sIdx] * spInv;
+    outPos[i * 3 + 2] = spSumZ[sIdx] * spInv;
+    const inv = 1 / outCount[i];
     if (outUvs) {
-      outUvs[i * 2] = sumU[i] * inv;
-      outUvs[i * 2 + 1] = sumV[i] * inv;
+      outUvs[i * 2] = outSumU[i] * inv;
+      outUvs[i * 2 + 1] = outSumV[i] * inv;
     }
     if (outCols) {
       for (let k = 0; k < cComp; k++) {
-        outCols[i * cComp + k] = sumC[i * cComp + k] * inv;
+        outCols[i * cComp + k] = outSumC[i * cComp + k] * inv;
       }
     }
   }
@@ -24841,7 +24876,7 @@ function buildViewerSessionResult(layout, args) {
 var server = new McpServer(
   {
     name: "model3d-viewer",
-    version: "1.4.0"
+    version: "1.4.1"
   },
   {
     capabilities: {

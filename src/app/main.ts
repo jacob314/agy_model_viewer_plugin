@@ -102,7 +102,7 @@ const sceneManager = new SceneManager(canvasHost, {
   },
 });
 
-const app = new App({ name: '3D Print Model Viewer', version: '1.4.0' }, {});
+const app = new App({ name: '3D Print Model Viewer', version: '1.4.1' }, {});
 let mcpConnected = false;
 let lastExportedPath = '';
 let lastFailedFileName = '';

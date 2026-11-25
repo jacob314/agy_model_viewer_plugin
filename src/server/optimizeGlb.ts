@@ -297,8 +297,10 @@ async function decodeDracoPrimitive(
 }
 
 /**
- * UV-seam-preserving spatial vertex clustering for huge GLB primitives (> targetTris).
- * Preserves sharp UV boundaries by including coarse UV tile coordinates in the cluster key.
+ * Watertight UV-seam-preserving spatial vertex clustering for huge GLB primitives (> targetTris).
+ * 1. Welds all vertices in each 3D spatial cell (gx, gy, gz) to ONE exact shared 3D position (ZERO cracks/slits!).
+ * 2. Splits output vertices inside a cell ONLY when their UVs actually jump across a UV island seam (> 0.06),
+ *    sharing the exact same welded 3D position so the mesh stays 100% crack-free with crisp textures.
  */
 function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedPrimitive {
   const triCount = Math.floor(prim.indices.length / 3);
@@ -323,16 +325,14 @@ function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedP
   const invCell = gridRes / maxSpan;
 
   const vCount = pos.length / 3;
-  const origToCluster = new Int32Array(vCount);
-  const cellMap = new Map<string, number>();
+  const origToSpatial = new Int32Array(vCount);
+  const spatialMap = new Map<string, number>();
 
-  const sumX: number[] = [];
-  const sumY: number[] = [];
-  const sumZ: number[] = [];
-  const sumU: number[] = [];
-  const sumV: number[] = [];
-  const sumC: number[] = [];
-  const counts: number[] = [];
+  // Pass 1: Pure spatial clustering for 100% crack-free welded 3D positions
+  const spSumX: number[] = [];
+  const spSumY: number[] = [];
+  const spSumZ: number[] = [];
+  const spCount: number[] = [];
 
   for (let i = 0; i < vCount; i++) {
     const x = pos[i * 3];
@@ -341,78 +341,124 @@ function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedP
     const gx = Math.floor((x - minX) * invCell);
     const gy = Math.floor((y - minY) * invCell);
     const gz = Math.floor((z - minZ) * invCell);
+    const key = `${gx},${gy},${gz}`;
 
-    let key: string;
-    if (uvs) {
-      const u = uvs[i * 2];
-      const v = uvs[i * 2 + 1];
-      // Coarse UV bucket prevents merging across UV island seams!
-      const uq = Math.floor(u * 12);
-      const vq = Math.floor(v * 12);
-      key = `${gx},${gy},${gz}|${uq},${vq}`;
+    let sIdx = spatialMap.get(key);
+    if (sIdx === undefined) {
+      sIdx = spCount.length;
+      spatialMap.set(key, sIdx);
+      spSumX.push(x);
+      spSumY.push(y);
+      spSumZ.push(z);
+      spCount.push(1);
     } else {
-      key = `${gx},${gy},${gz}`;
+      spSumX[sIdx] += x;
+      spSumY[sIdx] += y;
+      spSumZ[sIdx] += z;
+      spCount[sIdx] += 1;
     }
-
-    let cIdx = cellMap.get(key);
-    if (cIdx === undefined) {
-      cIdx = counts.length;
-      cellMap.set(key, cIdx);
-      sumX.push(x);
-      sumY.push(y);
-      sumZ.push(z);
-      if (uvs) {
-        sumU.push(uvs[i * 2]);
-        sumV.push(uvs[i * 2 + 1]);
-      }
-      if (cols) {
-        for (let k = 0; k < cComp; k++) sumC.push(cols[i * cComp + k]);
-      }
-      counts.push(1);
-    } else {
-      sumX[cIdx] += x;
-      sumY[cIdx] += y;
-      sumZ[cIdx] += z;
-      if (uvs) {
-        sumU[cIdx] += uvs[i * 2];
-        sumV[cIdx] += uvs[i * 2 + 1];
-      }
-      if (cols) {
-        for (let k = 0; k < cComp; k++) sumC[cIdx * cComp + k] += cols[i * cComp + k];
-      }
-      counts[cIdx] += 1;
-    }
-    origToCluster[i] = cIdx;
+    origToSpatial[i] = sIdx;
   }
 
+  // Pass 2: Assign final vertex indices, splitting only on real UV seam jumps (> 0.06)
+  // while ALWAYS sharing the exact welded 3D position from Pass 1
+  const origToOut = new Int32Array(vCount);
+  const outSpatialId: number[] = [];
+  const outSumU: number[] = [];
+  const outSumV: number[] = [];
+  const outSumC: number[] = [];
+  const outCount: number[] = [];
+  // spatialIdx -> list of outVertexIds belonging to distinct UV islands in this cell
+  const spatialToOutList: number[][] = new Array(spCount.length);
+  const UV_SEAM_SQ = 0.06 * 0.06;
+
+  for (let i = 0; i < vCount; i++) {
+    const sIdx = origToSpatial[i];
+    let list = spatialToOutList[sIdx];
+    if (!list) {
+      list = [];
+      spatialToOutList[sIdx] = list;
+    }
+
+    const u = uvs ? uvs[i * 2] : 0;
+    const v = uvs ? uvs[i * 2 + 1] : 0;
+
+    let chosen = -1;
+    if (!uvs) {
+      chosen = list.length > 0 ? list[0] : -1;
+    } else {
+      for (let j = 0; j < list.length; j++) {
+        const oid = list[j];
+        const inv = 1 / outCount[oid];
+        const du = u - outSumU[oid] * inv;
+        const dv = v - outSumV[oid] * inv;
+        if (du * du + dv * dv <= UV_SEAM_SQ) {
+          chosen = oid;
+          break;
+        }
+      }
+    }
+
+    if (chosen === -1) {
+      chosen = outCount.length;
+      list.push(chosen);
+      outSpatialId.push(sIdx);
+      if (uvs) {
+        outSumU.push(u);
+        outSumV.push(v);
+      }
+      if (cols) {
+        for (let k = 0; k < cComp; k++) outSumC.push(cols[i * cComp + k]);
+      }
+      outCount.push(1);
+    } else {
+      if (uvs) {
+        outSumU[chosen] += u;
+        outSumV[chosen] += v;
+      }
+      if (cols) {
+        for (let k = 0; k < cComp; k++) outSumC[chosen * cComp + k] += cols[i * cComp + k];
+      }
+      outCount[chosen] += 1;
+    }
+    origToOut[i] = chosen;
+  }
+
+  // Filter degenerate triangles using spatial IDs (so collapsed triangles disappear cleanly)
   const outIdx: number[] = [];
   const origIdx = prim.indices;
   for (let t = 0; t < triCount; t++) {
-    const i0 = origToCluster[origIdx[t * 3]];
-    const i1 = origToCluster[origIdx[t * 3 + 1]];
-    const i2 = origToCluster[origIdx[t * 3 + 2]];
-    if (i0 !== i1 && i1 !== i2 && i2 !== i0) {
-      outIdx.push(i0, i1, i2);
+    const a = origIdx[t * 3];
+    const b = origIdx[t * 3 + 1];
+    const c = origIdx[t * 3 + 2];
+    const s0 = origToSpatial[a];
+    const s1 = origToSpatial[b];
+    const s2 = origToSpatial[c];
+    if (s0 !== s1 && s1 !== s2 && s2 !== s0) {
+      outIdx.push(origToOut[a], origToOut[b], origToOut[c]);
     }
   }
 
-  const newVCount = counts.length;
+  const newVCount = outCount.length;
   const outPos = new Float32Array(newVCount * 3);
   const outUvs = uvs ? new Float32Array(newVCount * 2) : null;
   const outCols = cols ? new Float32Array(newVCount * cComp) : null;
 
   for (let i = 0; i < newVCount; i++) {
-    const inv = 1 / counts[i];
-    outPos[i * 3] = sumX[i] * inv;
-    outPos[i * 3 + 1] = sumY[i] * inv;
-    outPos[i * 3 + 2] = sumZ[i] * inv;
+    const sIdx = outSpatialId[i];
+    const spInv = 1 / spCount[sIdx];
+    outPos[i * 3] = spSumX[sIdx] * spInv;
+    outPos[i * 3 + 1] = spSumY[sIdx] * spInv;
+    outPos[i * 3 + 2] = spSumZ[sIdx] * spInv;
+
+    const inv = 1 / outCount[i];
     if (outUvs) {
-      outUvs[i * 2] = sumU[i] * inv;
-      outUvs[i * 2 + 1] = sumV[i] * inv;
+      outUvs[i * 2] = outSumU[i] * inv;
+      outUvs[i * 2 + 1] = outSumV[i] * inv;
     }
     if (outCols) {
       for (let k = 0; k < cComp; k++) {
-        outCols[i * cComp + k] = sumC[i * cComp + k] * inv;
+        outCols[i * cComp + k] = outSumC[i * cComp + k] * inv;
       }
     }
   }

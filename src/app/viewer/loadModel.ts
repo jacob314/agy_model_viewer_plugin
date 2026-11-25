@@ -119,7 +119,13 @@ function normalizeAndWrap(
     countedTris = Math.round(countedTris);
   }
 
-  const dimsMm: [number, number, number] = explicitDimsMm ?? [rawSize.x, rawSize.z, rawSize.y];
+  // glTF/GLB standard units are meters; convert < 2.5m spans to millimeters for accurate 3D print readout
+  const gltfToMm = !explicitDimsMm && formatLabel === 'GLB' && maxSpan < 2.5 ? 1000 : 1;
+  const dimsMm: [number, number, number] = explicitDimsMm ?? [
+    rawSize.x * gltfToMm,
+    rawSize.z * gltfToMm,
+    rawSize.y * gltfToMm,
+  ];
 
   return {
     pivotGroup,
@@ -189,6 +195,15 @@ function buildFromM3dv(bytes: Uint8Array): LoadedModelBundle {
 
 async function buildFromGlb(bytes: Uint8Array, fetchAsset?: FetchAssetFn): Promise<LoadedModelBundle> {
   const loader = new GLTFLoader();
+  // Antigravity's strict MCP App CSP blocks fetch('blob:...') (connect-src 'none') used by ImageBitmapLoader,
+  // while permitting blob:/data: via <img> (img-src data: blob:). Force TextureLoader so embedded GLB textures
+  // decode reliably without any fetch() calls.
+  loader.register((parser) => {
+    const texLoader = new THREE.TextureLoader(parser.options.manager);
+    (parser as unknown as { textureLoader: THREE.TextureLoader }).textureLoader = texLoader;
+    return { name: 'CSP_SAFE_TEXTURE_LOADER' };
+  });
+
   const gltf = await new Promise<{ scene: THREE.Group }>((resolve, reject) => {
     const copy = bytes.slice().buffer;
     loader.parse(copy, '', resolve, reject);
