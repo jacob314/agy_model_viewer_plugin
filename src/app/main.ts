@@ -61,6 +61,7 @@ const loadingLabel = document.getElementById('loadingLabel')!;
 const loadingBar = document.getElementById('loadingBar')!;
 const errorOverlay = document.getElementById('errorOverlay')!;
 const errorDetail = document.getElementById('errorDetail')!;
+const btnErrorFallback = document.getElementById('btnErrorFallback') as HTMLButtonElement;
 const emptyOverlay = document.getElementById('emptyOverlay')!;
 const localFileInput = document.getElementById('localFileInput') as HTMLInputElement;
 const swatchList = document.getElementById('swatchList')!;
@@ -101,9 +102,10 @@ const sceneManager = new SceneManager(canvasHost, {
   },
 });
 
-const app = new App({ name: '3D Print Model Viewer', version: '1.3.0' }, {});
+const app = new App({ name: '3D Print Model Viewer', version: '1.4.0' }, {});
 let mcpConnected = false;
 let lastExportedPath = '';
+let lastFailedFileName = '';
 
 function base64ToUint8Array(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -233,7 +235,7 @@ async function runExport(exportFormat: ExportFormatOption): Promise<void> {
     const baseStem = `${origStem}${suffix}`;
 
     if (mcpConnected) {
-      const CHUNK = 1_200_000;
+      const CHUNK = 524_288; // 512 KiB raw (~699 KiB base64 JSON, safely below 1 MiB)
       const totalChunks = Math.max(1, Math.ceil(built.bytes.length / CHUNK));
       const uploadId = `exp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       let finalResp: ExportResultResponse | null = null;
@@ -345,11 +347,14 @@ async function fetchFullModelBytes(
   full.set(firstBytes, 0);
   let writeOffset = firstBytes.length;
 
-  // Stream up to 2 chunks at a time (safely below Antigravity's 4 in-flight tool call cap)
-  for (let idx = 1; idx < totalChunks; idx += 2) {
+  // Stream up to 3 chunks concurrently (safely below Antigravity's 4 in-flight tool call cap)
+  for (let idx = 1; idx < totalChunks; idx += 3) {
     const batch: Promise<LoadChunkResponse>[] = [fetchChunk(modelId, idx, assetName)];
     if (idx + 1 < totalChunks) {
       batch.push(fetchChunk(modelId, idx + 1, assetName));
+    }
+    if (idx + 2 < totalChunks) {
+      batch.push(fetchChunk(modelId, idx + 2, assetName));
     }
     const responses = await Promise.all(batch);
     for (const r of responses) {
@@ -377,10 +382,14 @@ function hideOverlays(): void {
   emptyOverlay.classList.add('hidden');
 }
 
-function showError(msg: string): void {
+function showError(msg: string, fallbackFileName?: string): void {
   loadingOverlay.classList.add('hidden');
   emptyOverlay.classList.add('hidden');
   errorDetail.textContent = msg;
+  lastFailedFileName = fallbackFileName || '';
+  const canFallback =
+    Boolean(fallbackFileName) && mcpConnected && Boolean(app.getHostCapabilities()?.message);
+  btnErrorFallback.classList.toggle('hidden', !canFallback);
   errorOverlay.classList.remove('hidden');
 }
 
@@ -623,7 +632,15 @@ async function openHostFileViewer(file: FileViewerPayload['file']): Promise<void
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    showError(msg);
+    const isTooLarge = /10\s*m|too large|exceed|size|limit/i.test(msg);
+    if (isTooLarge) {
+      showError(
+        `${file.name} exceeds Antigravity's 10 MiB direct file-viewer limit. Click below to open it through the 3D Print Viewer server (auto-optimizes large GLBs/STLs with no 10 MiB limit), or drop the file onto this window.`,
+        file.name,
+      );
+    } else {
+      showError(msg, file.name);
+    }
   }
 }
 
@@ -665,6 +682,23 @@ btnMatToggle.addEventListener('click', () => {
 
 btnResetView.addEventListener('click', () => {
   sceneManager.resetView();
+});
+
+btnErrorFallback.addEventListener('click', async () => {
+  if (!mcpConnected || !lastFailedFileName) return;
+  try {
+    await app.sendMessage({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `Open ${lastFailedFileName} in the 3D Print Viewer side panel using open_3d_viewer.`,
+        },
+      ],
+    });
+  } catch {
+    // Ignore
+  }
 });
 
 btnExportMenu.addEventListener('click', (ev) => {

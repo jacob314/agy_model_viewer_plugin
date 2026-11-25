@@ -204,6 +204,9 @@ async function buildFromGlb(bytes: Uint8Array, fetchAsset?: FetchAssetFn): Promi
     if (obj instanceof THREE.Mesh) {
       obj.castShadow = true;
       obj.receiveShadow = true;
+      if (!obj.geometry.getAttribute('normal')) {
+        obj.geometry.computeVertexNormals();
+      }
       const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
       const label = mat?.name || obj.name || `Material ${meshIdx++}`;
       appearance.registerMesh(obj, label);

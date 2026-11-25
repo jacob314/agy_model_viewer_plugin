@@ -14,6 +14,7 @@ An interactive [Antigravity](https://antigravity.google) plugin (`model3d-viewer
 - **Native Bambu Studio Multi-Color `.3mf` & Large `.stl` Engine**:
   - Fast server-side parser supporting Bambu Studio / OrcaSlicer `paint_color` MMU bitstreams, `<basematerials>`, `<m:colorgroup>`, `Metadata/project_settings.config`, `Metadata/model_settings.config`, and multi-file `3D/Objects/*.model` assemblies.
   - Supports binary & ASCII `.stl` (including Magics/VisCAM 15-bit per-triangle RGB) with automatic spatial-clustering decimation for massive 100+ MB build plates so interaction stays smooth at 60 FPS while preserving true millimeter dimensions.
+  - **Large & Draco `.glb` Server Optimizer**: Automatically decodes `KHR_draco_mesh_compression` server-side (bundled JS decoder, zero browser WASM/CSP issues), applies UV-seam-preserving spatial decimation for multi-million-triangle meshes, downscales oversized 4K textures to crisp 1024px, and streams in 512 KiB chunks safely below MCP payload caps.
 - **Calibrated Studio Lighting & Self-Shadows**:
   - ~4.5:1 off-axis key-to-fill lighting rig with tight 2048×2048 shadow maps (`PCFSoftShadowMap`, `normalBias`) and per-group creased CAD normals so relief lettering and bevels cast crisp self-shadows on both matte white and vibrant filament colors.
 - **Color / Grey Inspection Toggle (`C`)**: Switch between full colors and uniform neutral inspection grey (`#9CA3AF`), or click individual bottom swatch chips to mute/unmute specific color channels.

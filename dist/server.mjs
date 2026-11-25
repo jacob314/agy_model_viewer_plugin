@@ -3258,8 +3258,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path3) {
-      let input = path3;
+    function removeDotSegments(path4) {
+      let input = path4;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3333,11 +3333,11 @@ var require_utils = __commonJS({
       }
       return output.join("");
     }
-    function removeDotSegmentsRelative(path3) {
-      if (path3 === "" || path3[0] === "/") {
-        return removeDotSegments(path3);
+    function removeDotSegmentsRelative(path4) {
+      if (path4 === "" || path4[0] === "/") {
+        return removeDotSegments(path4);
       }
-      const segments = path3.split("/");
+      const segments = path4.split("/");
       const last = segments.length - 1;
       const output = [];
       let trailingDirectory = false;
@@ -3700,8 +3700,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path3 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path3 && path3 !== "/" ? path3 : void 0;
+        const path4 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path4 && path4 !== "/" ? path4 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7238,12 +7238,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs3, exportName) {
+    function addFormats(ajv, list, fs4, exportName) {
       var _a2;
       var _b2;
       (_a2 = (_b2 = ajv.opts.code).formats) !== null && _a2 !== void 0 ? _a2 : _b2.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs3[f]);
+        ajv.addFormat(f, fs4[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -7252,10 +7252,10 @@ var require_dist = __commonJS({
 });
 
 // src/server/index.ts
-import fs2 from "node:fs";
-import path2 from "node:path";
+import fs3 from "node:fs";
+import path3 from "node:path";
 import crypto from "node:crypto";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath as fileURLToPath2, pathToFileURL } from "node:url";
 
 // node_modules/zod/v3/external.js
 var external_exports = {};
@@ -7735,8 +7735,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path3, errorMaps, issueData } = params;
-  const fullPath = [...path3, ...issueData.path || []];
+  const { data, path: path4, errorMaps, issueData } = params;
+  const fullPath = [...path4, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7852,11 +7852,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path3, key) {
+  constructor(parent, value, path4, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path3;
+    this._path = path4;
     this._key = key;
   }
   get path() {
@@ -11494,10 +11494,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path3) {
-  if (!path3)
+function getElementAtPath(obj, path4) {
+  if (!path4)
     return obj;
-  return path3.reduce((acc, key) => acc?.[key], obj);
+  return path4.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11817,11 +11817,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path3, issues) {
+function prefixIssues(path4, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path3);
+    iss.path.unshift(path4);
     return iss;
   });
 }
@@ -15234,11 +15234,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path3) {
-  if (path3.length === 0) {
+function getDotPath(path4) {
+  if (path4.length === 0) {
     return "object root";
   }
-  return path3.reduce((acc, seg, index) => {
+  return path4.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -23126,16 +23126,16 @@ function parseModelXml(xml, filaments, partExtruders) {
       if (vEnd !== -1) {
         const vBlock = body.slice(vStart, vEnd);
         const vRe = /<vertex\s+x="([^"]+)"\s+y="([^"]+)"\s+z="([^"]+)"/g;
-        let vm;
-        while ((vm = vRe.exec(vBlock)) !== null) {
-          verts.push(parseFloat(vm[1]), parseFloat(vm[2]), parseFloat(vm[3]));
+        let vm2;
+        while ((vm2 = vRe.exec(vBlock)) !== null) {
+          verts.push(parseFloat(vm2[1]), parseFloat(vm2[2]), parseFloat(vm2[3]));
         }
         if (verts.length === 0 && vBlock.includes("<vertex")) {
           const vTagRe = /<vertex\b([^>]*)\/?>/g;
-          while ((vm = vTagRe.exec(vBlock)) !== null) {
-            const x = parseFloat(getAttr(vm[1], "x") ?? "0");
-            const y = parseFloat(getAttr(vm[1], "y") ?? "0");
-            const z = parseFloat(getAttr(vm[1], "z") ?? "0");
+          while ((vm2 = vTagRe.exec(vBlock)) !== null) {
+            const x = parseFloat(getAttr(vm2[1], "x") ?? "0");
+            const y = parseFloat(getAttr(vm2[1], "y") ?? "0");
+            const z = parseFloat(getAttr(vm2[1], "z") ?? "0");
             verts.push(x, y, z);
           }
         }
@@ -23446,10 +23446,620 @@ function parse3mfToM3dv(buf, defaultColor = "#4F8EF7") {
   return Buffer.from(out.buffer, out.byteOffset, out.byteLength);
 }
 
-// src/server/serverExport.ts
+// src/server/optimizeGlb.ts
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import vm from "node:vm";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+var __dirname = path.dirname(fileURLToPath(import.meta.url));
+var OPTIMIZE_SIZE_THRESHOLD = 6 * 1024 * 1024;
+var MAX_TOTAL_TRIANGLES = 24e4;
+var TEXTURE_RESIZE_THRESHOLD = 350 * 1024;
+var MAX_TEXTURE_DIM = 1024;
+var dracoModulePromise = null;
+async function getDracoModule() {
+  if (dracoModulePromise) return dracoModulePromise;
+  dracoModulePromise = (async () => {
+    const candidates = [
+      path.join(__dirname, "draco_decoder.js"),
+      path.resolve(__dirname, "../node_modules/three/examples/jsm/libs/draco/gltf/draco_decoder.js")
+    ];
+    const decoderPath = candidates.find((p) => fs.existsSync(p));
+    if (!decoderPath) {
+      throw new Error("Draco decoder bundle not found (expected dist/draco_decoder.js)");
+    }
+    const code = fs.readFileSync(decoderPath, "utf8");
+    const sandbox = {
+      console,
+      setTimeout,
+      clearTimeout,
+      Uint8Array,
+      Int8Array,
+      Uint16Array,
+      Int16Array,
+      Uint32Array,
+      Int32Array,
+      Float32Array,
+      Float64Array,
+      ArrayBuffer,
+      DataView,
+      Math,
+      Date,
+      Object,
+      Array,
+      Error,
+      TypeError,
+      RangeError,
+      String,
+      Number,
+      Boolean,
+      RegExp,
+      Promise,
+      Map,
+      Set,
+      performance
+    };
+    sandbox.self = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.runInNewContext(code, sandbox);
+    return sandbox.DracoDecoderModule();
+  })();
+  return dracoModulePromise;
+}
+function componentByteSize(ct) {
+  switch (ct) {
+    case 5120:
+    case 5121:
+      return 1;
+    case 5122:
+    case 5123:
+      return 2;
+    case 5125:
+    case 5126:
+      return 4;
+    default:
+      return 4;
+  }
+}
+function typeNumComponents(t) {
+  switch (t) {
+    case "SCALAR":
+      return 1;
+    case "VEC2":
+      return 2;
+    case "VEC3":
+      return 3;
+    case "VEC4":
+    case "MAT2":
+      return 4;
+    case "MAT3":
+      return 9;
+    case "MAT4":
+      return 16;
+    default:
+      return 1;
+  }
+}
+function readComponent(view, offset, ct, normalized = false) {
+  switch (ct) {
+    case 5126:
+      return view.getFloat32(offset, true);
+    case 5125:
+      return view.getUint32(offset, true);
+    case 5123: {
+      const v = view.getUint16(offset, true);
+      return normalized ? v / 65535 : v;
+    }
+    case 5122: {
+      const v = view.getInt16(offset, true);
+      return normalized ? Math.max(-1, v / 32767) : v;
+    }
+    case 5121: {
+      const v = view.getUint8(offset);
+      return normalized ? v / 255 : v;
+    }
+    case 5120: {
+      const v = view.getInt8(offset);
+      return normalized ? Math.max(-1, v / 127) : v;
+    }
+    default:
+      return view.getFloat32(offset, true);
+  }
+}
+function readAccessorAsFloat32(gltf, bin, accIdx) {
+  const acc = gltf.accessors[accIdx];
+  const bv = gltf.bufferViews[acc.bufferView];
+  const numComp = typeNumComponents(acc.type);
+  const compBytes = componentByteSize(acc.componentType);
+  const stride = bv.byteStride || numComp * compBytes;
+  const baseOff = (bv.byteOffset || 0) + (acc.byteOffset || 0);
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const out = new Float32Array(acc.count * numComp);
+  if (acc.componentType === 5126 && stride === numComp * 4) {
+    for (let i = 0; i < acc.count * numComp; i++) {
+      out[i] = view.getFloat32(baseOff + i * 4, true);
+    }
+    return out;
+  }
+  for (let i = 0; i < acc.count; i++) {
+    const rowOff = baseOff + i * stride;
+    for (let c = 0; c < numComp; c++) {
+      out[i * numComp + c] = readComponent(
+        view,
+        rowOff + c * compBytes,
+        acc.componentType,
+        acc.normalized
+      );
+    }
+  }
+  return out;
+}
+function readIndicesAsUint32(gltf, bin, accIdx) {
+  const acc = gltf.accessors[accIdx];
+  const bv = gltf.bufferViews[acc.bufferView];
+  const compBytes = componentByteSize(acc.componentType);
+  const stride = bv.byteStride || compBytes;
+  const baseOff = (bv.byteOffset || 0) + (acc.byteOffset || 0);
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const out = new Uint32Array(acc.count);
+  for (let i = 0; i < acc.count; i++) {
+    const off = baseOff + i * stride;
+    if (acc.componentType === 5125) out[i] = view.getUint32(off, true);
+    else if (acc.componentType === 5123) out[i] = view.getUint16(off, true);
+    else out[i] = view.getUint8(off);
+  }
+  return out;
+}
+async function decodeDracoPrimitive(bin, bv, attrIds) {
+  const draco = await getDracoModule();
+  const decoder = new draco.Decoder();
+  const dracoMesh = new draco.Mesh();
+  const dracoBuf = new draco.DecoderBuffer();
+  try {
+    const start = bv.byteOffset || 0;
+    const raw = new Int8Array(bin.buffer, bin.byteOffset + start, bv.byteLength);
+    dracoBuf.Init(raw, raw.byteLength);
+    const status = decoder.DecodeBufferToMesh(dracoBuf, dracoMesh);
+    if (!status.ok() || dracoMesh.ptr === 0) {
+      throw new Error(`Draco decode failed: ${status.error_msg()}`);
+    }
+    const numVerts = dracoMesh.num_points();
+    const numFaces = dracoMesh.num_faces();
+    const indices = new Uint32Array(numFaces * 3);
+    const face = new draco.DracoInt32Array();
+    for (let f = 0; f < numFaces; f++) {
+      decoder.GetFaceFromMesh(dracoMesh, f, face);
+      indices[f * 3] = face.GetValue(0);
+      indices[f * 3 + 1] = face.GetValue(1);
+      indices[f * 3 + 2] = face.GetValue(2);
+    }
+    draco.destroy(face);
+    const readFloatAttr = (uniqueId, numComp) => {
+      if (uniqueId === void 0) return null;
+      const attr = decoder.GetAttributeByUniqueId(dracoMesh, uniqueId);
+      if (!attr || attr.ptr === 0) return null;
+      const arr = new draco.DracoFloat32Array();
+      decoder.GetAttributeFloatForAllPoints(dracoMesh, attr, arr);
+      const out = new Float32Array(numVerts * numComp);
+      const actualComp = attr.num_components();
+      for (let i = 0; i < numVerts; i++) {
+        for (let c = 0; c < numComp; c++) {
+          out[i * numComp + c] = c < actualComp ? arr.GetValue(i * actualComp + c) : 1;
+        }
+      }
+      draco.destroy(arr);
+      return out;
+    };
+    const positions = readFloatAttr(attrIds.POSITION, 3);
+    if (!positions) throw new Error("Draco mesh missing POSITION attribute");
+    const uvs = readFloatAttr(attrIds.TEXCOORD_0, 2);
+    let colors = null;
+    let colorComponents = 3;
+    if (attrIds.COLOR_0 !== void 0) {
+      const cAttr = decoder.GetAttributeByUniqueId(dracoMesh, attrIds.COLOR_0);
+      if (cAttr && cAttr.ptr !== 0) {
+        colorComponents = Math.min(4, Math.max(3, cAttr.num_components()));
+        colors = readFloatAttr(attrIds.COLOR_0, colorComponents);
+      }
+    }
+    return { positions, uvs, colors, colorComponents, indices };
+  } finally {
+    draco.destroy(dracoBuf);
+    draco.destroy(dracoMesh);
+    draco.destroy(decoder);
+  }
+}
+function decimatePrimitive(prim, targetTris) {
+  const triCount = Math.floor(prim.indices.length / 3);
+  if (triCount <= targetTris) return prim;
+  const pos = prim.positions;
+  const uvs = prim.uvs;
+  const cols = prim.colors;
+  const cComp = prim.colorComponents;
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let i = 0; i < pos.length; i += 3) {
+    const x = pos[i], y = pos[i + 1], z = pos[i + 2];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  const maxSpan = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 1e-5);
+  const gridRes = Math.max(40, Math.min(260, Math.round(Math.sqrt(targetTris * 0.24))));
+  const invCell = gridRes / maxSpan;
+  const vCount = pos.length / 3;
+  const origToCluster = new Int32Array(vCount);
+  const cellMap = /* @__PURE__ */ new Map();
+  const sumX = [];
+  const sumY = [];
+  const sumZ = [];
+  const sumU = [];
+  const sumV = [];
+  const sumC = [];
+  const counts = [];
+  for (let i = 0; i < vCount; i++) {
+    const x = pos[i * 3];
+    const y = pos[i * 3 + 1];
+    const z = pos[i * 3 + 2];
+    const gx = Math.floor((x - minX) * invCell);
+    const gy = Math.floor((y - minY) * invCell);
+    const gz = Math.floor((z - minZ) * invCell);
+    let key;
+    if (uvs) {
+      const u = uvs[i * 2];
+      const v = uvs[i * 2 + 1];
+      const uq = Math.floor(u * 12);
+      const vq = Math.floor(v * 12);
+      key = `${gx},${gy},${gz}|${uq},${vq}`;
+    } else {
+      key = `${gx},${gy},${gz}`;
+    }
+    let cIdx = cellMap.get(key);
+    if (cIdx === void 0) {
+      cIdx = counts.length;
+      cellMap.set(key, cIdx);
+      sumX.push(x);
+      sumY.push(y);
+      sumZ.push(z);
+      if (uvs) {
+        sumU.push(uvs[i * 2]);
+        sumV.push(uvs[i * 2 + 1]);
+      }
+      if (cols) {
+        for (let k = 0; k < cComp; k++) sumC.push(cols[i * cComp + k]);
+      }
+      counts.push(1);
+    } else {
+      sumX[cIdx] += x;
+      sumY[cIdx] += y;
+      sumZ[cIdx] += z;
+      if (uvs) {
+        sumU[cIdx] += uvs[i * 2];
+        sumV[cIdx] += uvs[i * 2 + 1];
+      }
+      if (cols) {
+        for (let k = 0; k < cComp; k++) sumC[cIdx * cComp + k] += cols[i * cComp + k];
+      }
+      counts[cIdx] += 1;
+    }
+    origToCluster[i] = cIdx;
+  }
+  const outIdx = [];
+  const origIdx = prim.indices;
+  for (let t = 0; t < triCount; t++) {
+    const i0 = origToCluster[origIdx[t * 3]];
+    const i1 = origToCluster[origIdx[t * 3 + 1]];
+    const i2 = origToCluster[origIdx[t * 3 + 2]];
+    if (i0 !== i1 && i1 !== i2 && i2 !== i0) {
+      outIdx.push(i0, i1, i2);
+    }
+  }
+  const newVCount = counts.length;
+  const outPos = new Float32Array(newVCount * 3);
+  const outUvs = uvs ? new Float32Array(newVCount * 2) : null;
+  const outCols = cols ? new Float32Array(newVCount * cComp) : null;
+  for (let i = 0; i < newVCount; i++) {
+    const inv = 1 / counts[i];
+    outPos[i * 3] = sumX[i] * inv;
+    outPos[i * 3 + 1] = sumY[i] * inv;
+    outPos[i * 3 + 2] = sumZ[i] * inv;
+    if (outUvs) {
+      outUvs[i * 2] = sumU[i] * inv;
+      outUvs[i * 2 + 1] = sumV[i] * inv;
+    }
+    if (outCols) {
+      for (let k = 0; k < cComp; k++) {
+        outCols[i * cComp + k] = sumC[i * cComp + k] * inv;
+      }
+    }
+  }
+  return {
+    positions: outPos,
+    uvs: outUvs,
+    colors: outCols,
+    colorComponents: cComp,
+    indices: Uint32Array.from(outIdx)
+  };
+}
+function optimizeImageBuffer(imgBytes, mimeType, preferJpeg) {
+  if (imgBytes.length <= TEXTURE_RESIZE_THRESHOLD) {
+    return { bytes: imgBytes, mimeType };
+  }
+  if (process.platform !== "darwin") {
+    return { bytes: imgBytes, mimeType };
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "m3dv-tex-"));
+  try {
+    const inExt = mimeType.includes("png") ? ".png" : mimeType.includes("webp") ? ".webp" : ".jpg";
+    const inPath = path.join(tmpDir, `in${inExt}`);
+    const outFormat = preferJpeg ? "jpeg" : "png";
+    const outExt = preferJpeg ? ".jpg" : ".png";
+    const outPath = path.join(tmpDir, `out${outExt}`);
+    fs.writeFileSync(inPath, imgBytes);
+    const args = ["-Z", String(MAX_TEXTURE_DIM), "-s", "format", outFormat];
+    if (preferJpeg) args.push("-s", "formatOptions", "84");
+    args.push(inPath, "--out", outPath);
+    execFileSync("/usr/bin/sips", args, { stdio: "ignore", timeout: 1e4 });
+    const outBytes = fs.readFileSync(outPath);
+    if (outBytes.length > 0 && outBytes.length < imgBytes.length) {
+      return {
+        bytes: outBytes,
+        mimeType: preferJpeg ? "image/jpeg" : "image/png"
+      };
+    }
+    return { bytes: imgBytes, mimeType };
+  } catch {
+    return { bytes: imgBytes, mimeType };
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+function pad4(buf, padByte = 0) {
+  const rem = buf.length % 4;
+  if (rem === 0) return buf;
+  return Buffer.concat([buf, Buffer.alloc(4 - rem, padByte)]);
+}
+async function optimizeGlbIfNeeded(rawBuf) {
+  if (rawBuf.length < 20 || rawBuf.subarray(0, 4).toString("ascii") !== "glTF") {
+    return rawBuf;
+  }
+  const jsonChunkLen = rawBuf.readUInt32LE(12);
+  const jsonChunkType = rawBuf.subarray(16, 20).toString("ascii");
+  if (jsonChunkType !== "JSON") return rawBuf;
+  const gltf = JSON.parse(rawBuf.subarray(20, 20 + jsonChunkLen).toString("utf8"));
+  const hasDraco = Boolean(gltf.extensionsUsed?.includes("KHR_draco_mesh_compression")) || Boolean(gltf.extensionsRequired?.includes("KHR_draco_mesh_compression"));
+  if (rawBuf.length <= OPTIMIZE_SIZE_THRESHOLD && !hasDraco) {
+    return rawBuf;
+  }
+  const binHeaderOff = 20 + jsonChunkLen;
+  if (binHeaderOff + 8 > rawBuf.length) return rawBuf;
+  const binChunkLen = rawBuf.readUInt32LE(binHeaderOff);
+  const binChunkType = rawBuf.subarray(binHeaderOff + 4, binHeaderOff + 8).toString("ascii");
+  if (binChunkType !== "BIN\0") return rawBuf;
+  const binBuf = rawBuf.subarray(binHeaderOff + 8, binHeaderOff + 8 + binChunkLen);
+  if (Array.isArray(gltf.skins) && gltf.skins.length > 0) {
+    return rawBuf;
+  }
+  let totalTris = 0;
+  const meshes = gltf.meshes || [];
+  for (const mesh of meshes) {
+    for (const prim of mesh.primitives) {
+      if (prim.indices !== void 0 && gltf.accessors?.[prim.indices]) {
+        totalTris += Math.floor(gltf.accessors[prim.indices].count / 3);
+      } else if (prim.attributes.POSITION !== void 0 && gltf.accessors?.[prim.attributes.POSITION]) {
+        totalTris += Math.floor(gltf.accessors[prim.attributes.POSITION].count / 3);
+      }
+    }
+  }
+  const alphaImages = /* @__PURE__ */ new Set();
+  for (const mat of gltf.materials || []) {
+    const alphaMode = mat.alphaMode;
+    if (alphaMode === "BLEND" || alphaMode === "MASK") {
+      const pbr = mat.pbrMetallicRoughness;
+      const texIdx = pbr?.baseColorTexture?.index;
+      if (texIdx !== void 0 && gltf.textures?.[texIdx]?.source !== void 0) {
+        alphaImages.add(gltf.textures[texIdx].source);
+      }
+    }
+  }
+  const newBinParts = [];
+  let binCursor = 0;
+  const newBufferViews = [];
+  const newAccessors = [];
+  const appendBufferView = (buf, target) => {
+    const padded = pad4(buf, 0);
+    const bvIdx = newBufferViews.length;
+    const bv = {
+      buffer: 0,
+      byteOffset: binCursor,
+      byteLength: buf.length
+    };
+    if (target !== void 0) bv.target = target;
+    newBufferViews.push(bv);
+    newBinParts.push(padded);
+    binCursor += padded.length;
+    return bvIdx;
+  };
+  const newImages = (gltf.images || []).map((img, idx) => {
+    if (img.bufferView === void 0 || !gltf.bufferViews?.[img.bufferView]) {
+      return img;
+    }
+    const bv = gltf.bufferViews[img.bufferView];
+    const start = bv.byteOffset || 0;
+    const rawImg = binBuf.subarray(start, start + bv.byteLength);
+    const mime = img.mimeType || "image/png";
+    const preferJpeg = !alphaImages.has(idx);
+    const opt = optimizeImageBuffer(rawImg, mime, preferJpeg);
+    const newBvIdx = appendBufferView(opt.bytes);
+    return {
+      ...img,
+      bufferView: newBvIdx,
+      mimeType: opt.mimeType
+    };
+  });
+  const newMeshes = [];
+  for (const mesh of meshes) {
+    const newPrimitives = [];
+    for (const prim of mesh.primitives) {
+      let decoded;
+      const dracoExt = prim.extensions?.KHR_draco_mesh_compression;
+      if (dracoExt && gltf.bufferViews?.[dracoExt.bufferView]) {
+        decoded = await decodeDracoPrimitive(
+          binBuf,
+          gltf.bufferViews[dracoExt.bufferView],
+          dracoExt.attributes
+        );
+      } else {
+        const positions = readAccessorAsFloat32(gltf, binBuf, prim.attributes.POSITION);
+        const uvs = prim.attributes.TEXCOORD_0 !== void 0 ? readAccessorAsFloat32(gltf, binBuf, prim.attributes.TEXCOORD_0) : null;
+        let colors = null;
+        let colorComponents = 3;
+        if (prim.attributes.COLOR_0 !== void 0) {
+          const cAcc = gltf.accessors[prim.attributes.COLOR_0];
+          colorComponents = typeNumComponents(cAcc.type);
+          colors = readAccessorAsFloat32(gltf, binBuf, prim.attributes.COLOR_0);
+        }
+        let indices;
+        if (prim.indices !== void 0) {
+          indices = readIndicesAsUint32(gltf, binBuf, prim.indices);
+        } else {
+          const vc = positions.length / 3;
+          indices = new Uint32Array(vc);
+          for (let i = 0; i < vc; i++) indices[i] = i;
+        }
+        decoded = { positions, uvs, colors, colorComponents, indices };
+      }
+      const primTris = Math.floor(decoded.indices.length / 3);
+      if (totalTris > MAX_TOTAL_TRIANGLES && primTris > 2e4) {
+        const budget = Math.max(
+          2e4,
+          Math.round(primTris / totalTris * MAX_TOTAL_TRIANGLES)
+        );
+        decoded = decimatePrimitive(decoded, budget);
+      }
+      const p = decoded.positions;
+      const vCount = p.length / 3;
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (let i = 0; i < p.length; i += 3) {
+        if (p[i] < minX) minX = p[i];
+        if (p[i] > maxX) maxX = p[i];
+        if (p[i + 1] < minY) minY = p[i + 1];
+        if (p[i + 1] > maxY) maxY = p[i + 1];
+        if (p[i + 2] < minZ) minZ = p[i + 2];
+        if (p[i + 2] > maxZ) maxZ = p[i + 2];
+      }
+      const attrs = {};
+      const posBuf = Buffer.from(p.buffer, p.byteOffset, p.byteLength);
+      const posBv = appendBufferView(posBuf, 34962);
+      attrs.POSITION = newAccessors.length;
+      newAccessors.push({
+        bufferView: posBv,
+        componentType: 5126,
+        count: vCount,
+        type: "VEC3",
+        min: [minX, minY, minZ],
+        max: [maxX, maxY, maxZ]
+      });
+      if (decoded.uvs) {
+        const uvBuf = Buffer.from(decoded.uvs.buffer, decoded.uvs.byteOffset, decoded.uvs.byteLength);
+        const uvBv = appendBufferView(uvBuf, 34962);
+        attrs.TEXCOORD_0 = newAccessors.length;
+        newAccessors.push({
+          bufferView: uvBv,
+          componentType: 5126,
+          count: vCount,
+          type: "VEC2"
+        });
+      }
+      if (decoded.colors) {
+        const cBuf = Buffer.from(
+          decoded.colors.buffer,
+          decoded.colors.byteOffset,
+          decoded.colors.byteLength
+        );
+        const cBv = appendBufferView(cBuf, 34962);
+        attrs.COLOR_0 = newAccessors.length;
+        newAccessors.push({
+          bufferView: cBv,
+          componentType: 5126,
+          count: vCount,
+          type: decoded.colorComponents === 4 ? "VEC4" : "VEC3"
+        });
+      }
+      let idxCompType = 5125;
+      let idxBuf;
+      if (vCount <= 65535) {
+        const u162 = new Uint16Array(decoded.indices.length);
+        u162.set(decoded.indices);
+        idxBuf = Buffer.from(u162.buffer, u162.byteOffset, u162.byteLength);
+        idxCompType = 5123;
+      } else {
+        idxBuf = Buffer.from(
+          decoded.indices.buffer,
+          decoded.indices.byteOffset,
+          decoded.indices.byteLength
+        );
+      }
+      const idxBv = appendBufferView(idxBuf, 34963);
+      const idxAcc = newAccessors.length;
+      newAccessors.push({
+        bufferView: idxBv,
+        componentType: idxCompType,
+        count: decoded.indices.length,
+        type: "SCALAR"
+      });
+      const newPrim = {
+        attributes: attrs,
+        indices: idxAcc,
+        material: prim.material,
+        mode: prim.mode ?? 4
+      };
+      newPrimitives.push(newPrim);
+    }
+    newMeshes.push({
+      ...mesh,
+      primitives: newPrimitives
+    });
+  }
+  const extUsed = (gltf.extensionsUsed || []).filter((e) => e !== "KHR_draco_mesh_compression");
+  const extReq = (gltf.extensionsRequired || []).filter((e) => e !== "KHR_draco_mesh_compression");
+  const outGltf = {
+    ...gltf,
+    images: newImages.length > 0 ? newImages : void 0,
+    meshes: newMeshes,
+    accessors: newAccessors,
+    bufferViews: newBufferViews,
+    buffers: [{ byteLength: binCursor }],
+    extensionsUsed: extUsed.length > 0 ? extUsed : void 0,
+    extensionsRequired: extReq.length > 0 ? extReq : void 0
+  };
+  const newJsonBuf = pad4(Buffer.from(JSON.stringify(outGltf), "utf8"), 32);
+  const newBinBuf = Buffer.concat(newBinParts);
+  const totalLen = 12 + 8 + newJsonBuf.length + 8 + newBinBuf.length;
+  const out = Buffer.allocUnsafe(totalLen);
+  out.write("glTF", 0, "ascii");
+  out.writeUInt32LE(2, 4);
+  out.writeUInt32LE(totalLen, 8);
+  out.writeUInt32LE(newJsonBuf.length, 12);
+  out.write("JSON", 16, "ascii");
+  newJsonBuf.copy(out, 20);
+  const binOff = 20 + newJsonBuf.length;
+  out.writeUInt32LE(newBinBuf.length, binOff);
+  out.write("BIN\0", binOff + 4, "ascii");
+  newBinBuf.copy(out, binOff + 8);
+  return out;
+}
+
+// src/server/serverExport.ts
+import fs2 from "node:fs";
+import os2 from "node:os";
+import path2 from "node:path";
 
 // src/shared/bambu/palette.ts
 var BASIC_PBR = { roughness: 0.42, metalness: 0.04 };
@@ -23932,27 +24542,27 @@ function unpackM3dvToGroups(bytes) {
 }
 function pickNonClobberingPath(dirPath, baseStem, extWithDot) {
   const safeStem = baseStem.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "model_export";
-  const targetDir = dirPath && fs.existsSync(dirPath) ? dirPath : path.join(os.homedir(), "Downloads");
-  fs.mkdirSync(targetDir, { recursive: true });
-  let candidate = path.join(targetDir, `${safeStem}${extWithDot}`);
+  const targetDir = dirPath && fs2.existsSync(dirPath) ? dirPath : path2.join(os2.homedir(), "Downloads");
+  fs2.mkdirSync(targetDir, { recursive: true });
+  let candidate = path2.join(targetDir, `${safeStem}${extWithDot}`);
   let n = 2;
-  while (fs.existsSync(candidate)) {
-    candidate = path.join(targetDir, `${safeStem}_${n}${extWithDot}`);
+  while (fs2.existsSync(candidate)) {
+    candidate = path2.join(targetDir, `${safeStem}_${n}${extWithDot}`);
     n++;
   }
   return candidate;
 }
 function exportServerRegisteredModel(params) {
-  const dirPath = path.dirname(params.absPath);
-  const origStem = path.basename(params.absPath, path.extname(params.absPath));
-  const rawBuf = fs.readFileSync(params.absPath);
+  const dirPath = path2.dirname(params.absPath);
+  const origStem = path2.basename(params.absPath, path2.extname(params.absPath));
+  const rawBuf = fs2.readFileSync(params.absPath);
   if (params.format === "stl" && params.exportFormat === "stl") {
     const savedPath2 = pickNonClobberingPath(dirPath, `${origStem}_print`, ".stl");
-    fs.writeFileSync(savedPath2, rawBuf);
+    fs2.writeFileSync(savedPath2, rawBuf);
     const triCount = rawBuf.length >= 84 ? rawBuf.readUInt32LE(80) : 0;
     return {
       savedPath: savedPath2,
-      fileName: path.basename(savedPath2),
+      fileName: path2.basename(savedPath2),
       sizeBytes: rawBuf.length,
       triangleCount: triCount
     };
@@ -23965,10 +24575,10 @@ function exportServerRegisteredModel(params) {
   if (params.exportFormat === "stl") {
     const { bytes: bytes2, triangleCount: triangleCount2 } = buildBinaryStl(groups, true);
     const savedPath2 = pickNonClobberingPath(dirPath, `${origStem}_print`, ".stl");
-    fs.writeFileSync(savedPath2, bytes2);
+    fs2.writeFileSync(savedPath2, bytes2);
     return {
       savedPath: savedPath2,
-      fileName: path.basename(savedPath2),
+      fileName: path2.basename(savedPath2),
       sizeBytes: bytes2.byteLength,
       triangleCount: triangleCount2
     };
@@ -23989,10 +24599,10 @@ function exportServerRegisteredModel(params) {
     groundOnBuildPlate: true
   });
   const savedPath = pickNonClobberingPath(dirPath, `${origStem}${suffix}`, ".3mf");
-  fs.writeFileSync(savedPath, bytes);
+  fs2.writeFileSync(savedPath, bytes);
   return {
     savedPath,
-    fileName: path.basename(savedPath),
+    fileName: path2.basename(savedPath),
     sizeBytes: bytes.byteLength,
     triangleCount,
     filaments
@@ -24001,11 +24611,11 @@ function exportServerRegisteredModel(params) {
 
 // src/server/index.ts
 var APP_URI = "ui://model3d-viewer/app.html";
-var CHUNK_SIZE_BYTES = 15e5;
+var CHUNK_SIZE_BYTES = 524288;
 var PROMOTED_SESSION_TTL_MS = 3e4;
-var __dirname = path2.dirname(fileURLToPath(import.meta.url));
-var PLUGIN_ROOT = path2.resolve(__dirname, "..");
-var DATA_DIR = path2.join(PLUGIN_ROOT, ".data");
+var __dirname2 = path3.dirname(fileURLToPath2(import.meta.url));
+var PLUGIN_ROOT = path3.resolve(__dirname2, "..");
+var DATA_DIR = path3.join(PLUGIN_ROOT, ".data");
 for (const arg of process.argv.slice(2)) {
   if (arg.startsWith("--data-dir=")) {
     DATA_DIR = arg.slice("--data-dir=".length);
@@ -24025,23 +24635,23 @@ var compiledM3dvCache = /* @__PURE__ */ new Map();
 var pendingExportUploads = /* @__PURE__ */ new Map();
 var pendingPromotedSession = null;
 function lastSessionPath() {
-  return path2.join(DATA_DIR, "last_session.json");
+  return path3.join(DATA_DIR, "last_session.json");
 }
 function saveLastSession(session) {
   try {
-    fs2.mkdirSync(DATA_DIR, { recursive: true });
-    fs2.writeFileSync(lastSessionPath(), JSON.stringify(session, null, 2), "utf8");
+    fs3.mkdirSync(DATA_DIR, { recursive: true });
+    fs3.writeFileSync(lastSessionPath(), JSON.stringify(session, null, 2), "utf8");
   } catch {
   }
 }
 function loadLastSession() {
   try {
     const p = lastSessionPath();
-    if (!fs2.existsSync(p)) return null;
-    const raw = JSON.parse(fs2.readFileSync(p, "utf8"));
+    if (!fs3.existsSync(p)) return null;
+    const raw = JSON.parse(fs3.readFileSync(p, "utf8"));
     if (!raw || !Array.isArray(raw.models)) return null;
     const existing = raw.models.filter(
-      (m) => typeof m?.path === "string" && fs2.existsSync(m.path)
+      (m) => typeof m?.path === "string" && fs3.existsSync(m.path)
     );
     if (existing.length === 0) return null;
     return { ...raw, models: existing.slice(0, 5) };
@@ -24056,24 +24666,24 @@ function registerModelList(items) {
   const metas = [];
   for (let i = 0; i < Math.min(items.length, 5); i++) {
     const item = items[i];
-    const absPath = path2.resolve(item.path);
-    if (!fs2.existsSync(absPath)) {
+    const absPath = path3.resolve(item.path);
+    if (!fs3.existsSync(absPath)) {
       throw new Error(`File not found: ${absPath}`);
     }
-    const stat = fs2.statSync(absPath);
+    const stat = fs3.statSync(absPath);
     if (!stat.isFile()) {
       throw new Error(`Path is not a file: ${absPath}`);
     }
-    const ext = path2.extname(absPath).toLowerCase();
+    const ext = path3.extname(absPath).toLowerCase();
     const format = SUPPORTED_EXT_MAP[ext];
     if (!format) {
       throw new Error(
-        `Unsupported 3D format "${ext}" for ${path2.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply`
+        `Unsupported 3D format "${ext}" for ${path3.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply`
       );
     }
     const defaultColor = item.color && /^#?[0-9a-fA-F]{6}$/.test(item.color) ? (item.color.startsWith("#") ? item.color : `#${item.color}`).toUpperCase() : DEFAULT_SLOT_COLORS[i % DEFAULT_SLOT_COLORS.length];
     const id = makeModelId(absPath, defaultColor);
-    const fileName = path2.basename(absPath);
+    const fileName = path3.basename(absPath);
     const label = item.label && item.label.trim() || fileName.replace(/\.[^.]+$/, "");
     const transport = format === "3mf" || format === "stl" ? "m3dv" : "raw";
     const meta = {
@@ -24088,7 +24698,7 @@ function registerModelList(items) {
     registeredModels.set(id, {
       id,
       absPath,
-      dirPath: path2.dirname(absPath),
+      dirPath: path3.dirname(absPath),
       meta
     });
     metas.push(meta);
@@ -24096,13 +24706,13 @@ function registerModelList(items) {
   return metas;
 }
 function getCompiledBuffer(reg) {
-  const stat = fs2.statSync(reg.absPath);
+  const stat = fs3.statSync(reg.absPath);
   const color = reg.meta.defaultColor || "#4F8EF7";
   const cached2 = compiledM3dvCache.get(reg.id);
   if (cached2 && cached2.mtimeMs === stat.mtimeMs && cached2.defaultColor === color) {
     return cached2.buffer;
   }
-  const rawBuf = fs2.readFileSync(reg.absPath);
+  const rawBuf = fs3.readFileSync(reg.absPath);
   const compiled = reg.meta.format === "3mf" ? parse3mfToM3dv(rawBuf, color) : parseStlToM3dv(rawBuf, color);
   if (compiledM3dvCache.size >= 10) {
     const oldestKey = compiledM3dvCache.keys().next().value;
@@ -24111,8 +24721,27 @@ function getCompiledBuffer(reg) {
   compiledM3dvCache.set(reg.id, { mtimeMs: stat.mtimeMs, defaultColor: color, buffer: compiled });
   return compiled;
 }
+async function getOptimizedGlbBuffer(reg) {
+  const stat = fs3.statSync(reg.absPath);
+  const cached2 = compiledM3dvCache.get(reg.id);
+  if (cached2 && cached2.mtimeMs === stat.mtimeMs) {
+    return cached2.buffer;
+  }
+  const rawBuf = fs3.readFileSync(reg.absPath);
+  const optimized = await optimizeGlbIfNeeded(rawBuf);
+  if (compiledM3dvCache.size >= 10) {
+    const oldestKey = compiledM3dvCache.keys().next().value;
+    if (oldestKey) compiledM3dvCache.delete(oldestKey);
+  }
+  compiledM3dvCache.set(reg.id, {
+    mtimeMs: stat.mtimeMs,
+    defaultColor: reg.meta.defaultColor || "#38BDF8",
+    buffer: optimized
+  });
+  return optimized;
+}
 function mimeForFile(name) {
-  const ext = path2.extname(name).toLowerCase();
+  const ext = path3.extname(name).toLowerCase();
   switch (ext) {
     case ".glb":
       return "model/gltf-binary";
@@ -24137,11 +24766,11 @@ function mimeForFile(name) {
 }
 function readAppHtml() {
   const override = process.env.MODEL3D_VIEWER_APP_HTML;
-  const htmlPath = override || path2.join(PLUGIN_ROOT, "dist", "index.html");
-  if (!fs2.existsSync(htmlPath)) {
+  const htmlPath = override || path3.join(PLUGIN_ROOT, "dist", "index.html");
+  if (!fs3.existsSync(htmlPath)) {
     throw new Error(`Viewer HTML bundle missing at ${htmlPath}. Run npm run build.`);
   }
-  return fs2.readFileSync(htmlPath, "utf8");
+  return fs3.readFileSync(htmlPath, "utf8");
 }
 var ModelInputSchema = external_exports.object({
   path: external_exports.string().describe("Absolute path to a .3mf, .stl, .obj, .glb, .gltf, or .ply file"),
@@ -24212,7 +24841,7 @@ function buildViewerSessionResult(layout, args) {
 var server = new McpServer(
   {
     name: "model3d-viewer",
-    version: "1.3.0"
+    version: "1.4.0"
   },
   {
     capabilities: {
@@ -24320,6 +24949,26 @@ server.registerTool(
     }
     if (!file) {
       return buildViewerSessionResult("pane", {});
+    }
+    for (const reg of registeredModels.values()) {
+      if (reg.meta.fileName.toLowerCase() === file.name.toLowerCase() && fs3.existsSync(reg.absPath)) {
+        const sessionPayload = {
+          kind: "session",
+          sessionId: crypto.randomUUID(),
+          layout: "pane",
+          title: reg.meta.label,
+          activeIndex: 0,
+          background: "black",
+          colorMode: "color",
+          bambuMatch: false,
+          deskMat: false,
+          models: [reg.meta]
+        };
+        return {
+          content: [{ type: "text", text: `Opened ${file.name} via optimized server stream.` }],
+          structuredContent: sessionPayload
+        };
+      }
     }
     const payload = {
       kind: "file_viewer",
@@ -24440,23 +25089,26 @@ server.registerTool(
     let resolvedAssetName = reg.meta.fileName;
     if (assetName) {
       const safeRel = assetName.replace(/\\/g, "/").replace(/^\/+/, "");
-      const candidate = path2.resolve(reg.dirPath, safeRel);
-      const relCheck = path2.relative(reg.dirPath, candidate);
-      if (relCheck.startsWith("..") || path2.isAbsolute(relCheck) || !fs2.existsSync(candidate)) {
+      const candidate = path3.resolve(reg.dirPath, safeRel);
+      const relCheck = path3.relative(reg.dirPath, candidate);
+      if (relCheck.startsWith("..") || path3.isAbsolute(relCheck) || !fs3.existsSync(candidate)) {
         return {
           isError: true,
           content: [{ type: "text", text: `Sibling asset not found or disallowed: ${assetName}` }]
         };
       }
-      dataBuffer = fs2.readFileSync(candidate);
+      dataBuffer = fs3.readFileSync(candidate);
       transport = "raw";
       mimeType = mimeForFile(candidate);
       resolvedAssetName = safeRel;
     } else if (reg.meta.transport === "m3dv") {
       dataBuffer = getCompiledBuffer(reg);
       mimeType = "application/x-m3dv";
+    } else if (reg.meta.format === "glb") {
+      dataBuffer = await getOptimizedGlbBuffer(reg);
+      mimeType = "model/gltf-binary";
     } else {
-      dataBuffer = fs2.readFileSync(reg.absPath);
+      dataBuffer = fs3.readFileSync(reg.absPath);
       mimeType = mimeForFile(reg.absPath);
     }
     const totalBytes = dataBuffer.length;
@@ -24608,10 +25260,10 @@ server.registerTool(
     const reg = modelId ? registeredModels.get(modelId) : void 0;
     const targetDir = reg ? reg.dirPath : "";
     const savedPath = pickNonClobberingPath(targetDir, baseStem, extWithDot);
-    fs2.writeFileSync(savedPath, fullBuf);
+    fs3.writeFileSync(savedPath, fullBuf);
     const resp = {
       savedPath,
-      fileName: path2.basename(savedPath),
+      fileName: path3.basename(savedPath),
       sizeBytes: fullBuf.length,
       exportFormat,
       triangleCount,

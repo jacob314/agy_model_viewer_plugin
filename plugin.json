@@ -1,7 +1,7 @@
 {
   "name": "model3d-viewer",
   "displayName": "3D Print Model Viewer",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Default interactive 3D viewer for STL and Bambu Studio multi-color 3MF/OBJ/GLB/PLY models in the side panel and inline chat, with calibrated studio self-shadows, multi-color/grey toggle, black or natural oak desk backdrop (with optional mat), upright object spin + clamped camera orbit, Bambu Lab filament matching, and one-click Bambu multi-color 3MF / binary STL export.",
   "author": {
     "name": "jacob314",

@@ -7,6 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { parseStlToM3dv } from './parseStl.js';
 import { parse3mfToM3dv } from './parse3mf.js';
+import { optimizeGlbIfNeeded } from './optimizeGlb.js';
 import { exportServerRegisteredModel, pickNonClobberingPath } from './serverExport.js';
 import type {
   BackdropMode,
@@ -22,7 +23,8 @@ import type {
 } from '../shared/types.js';
 
 const APP_URI = 'ui://model3d-viewer/app.html';
-const CHUNK_SIZE_BYTES = 1_500_000;
+// 512 KiB raw -> ~699 KiB base64 JSON, comfortably below Antigravity's 1 MiB MCP payload cap
+const CHUNK_SIZE_BYTES = 524_288;
 const PROMOTED_SESSION_TTL_MS = 30_000;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -195,6 +197,26 @@ function getCompiledBuffer(reg: RegisteredModel): Buffer {
   return compiled;
 }
 
+async function getOptimizedGlbBuffer(reg: RegisteredModel): Promise<Buffer> {
+  const stat = fs.statSync(reg.absPath);
+  const cached = compiledM3dvCache.get(reg.id);
+  if (cached && cached.mtimeMs === stat.mtimeMs) {
+    return cached.buffer;
+  }
+  const rawBuf = fs.readFileSync(reg.absPath);
+  const optimized = await optimizeGlbIfNeeded(rawBuf);
+  if (compiledM3dvCache.size >= 10) {
+    const oldestKey = compiledM3dvCache.keys().next().value;
+    if (oldestKey) compiledM3dvCache.delete(oldestKey);
+  }
+  compiledM3dvCache.set(reg.id, {
+    mtimeMs: stat.mtimeMs,
+    defaultColor: reg.meta.defaultColor || '#38BDF8',
+    buffer: optimized,
+  });
+  return optimized;
+}
+
 function mimeForFile(name: string): string {
   const ext = path.extname(name).toLowerCase();
   switch (ext) {
@@ -335,7 +357,7 @@ function buildViewerSessionResult(
 const server = new McpServer(
   {
     name: 'model3d-viewer',
-    version: '1.3.0',
+    version: '1.4.0',
   },
   {
     capabilities: {
@@ -466,6 +488,29 @@ server.registerTool(
 
     if (!file) {
       return buildViewerSessionResult('pane', {});
+    }
+
+    // If this exact file is already registered on our server (e.g. from earlier in this session),
+    // stream it via load_model_chunk so >10 MiB GLBs/STLs bypass Antigravity's 10 MiB antigravity-file:// cap!
+    for (const reg of registeredModels.values()) {
+      if (reg.meta.fileName.toLowerCase() === file.name.toLowerCase() && fs.existsSync(reg.absPath)) {
+        const sessionPayload: ViewerSessionPayload = {
+          kind: 'session',
+          sessionId: crypto.randomUUID(),
+          layout: 'pane',
+          title: reg.meta.label,
+          activeIndex: 0,
+          background: 'black',
+          colorMode: 'color',
+          bambuMatch: false,
+          deskMat: false,
+          models: [reg.meta],
+        };
+        return {
+          content: [{ type: 'text' as const, text: `Opened ${file.name} via optimized server stream.` }],
+          structuredContent: sessionPayload as unknown as Record<string, unknown>,
+        };
+      }
     }
 
     const payload: FileViewerPayload = {
@@ -616,6 +661,9 @@ server.registerTool(
     } else if (reg.meta.transport === 'm3dv') {
       dataBuffer = getCompiledBuffer(reg);
       mimeType = 'application/x-m3dv';
+    } else if (reg.meta.format === 'glb') {
+      dataBuffer = await getOptimizedGlbBuffer(reg);
+      mimeType = 'model/gltf-binary';
     } else {
       dataBuffer = fs.readFileSync(reg.absPath);
       mimeType = mimeForFile(reg.absPath);
