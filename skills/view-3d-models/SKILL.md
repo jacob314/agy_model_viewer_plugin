@@ -42,6 +42,8 @@ Both tools share the exact same interactive 3D engine and full controls:
    - Full PBR materials, embedded/external textures, and vertex colors (Bambu color matching remaps textures in real time too).
 5. **`.ply`**:
    - Supports per-vertex and per-face colors.
+6. **`.blend`** *(Blender scenes — converted automatically via local headless Blender)*:
+   - Automatically applies modifiers, preserves materials/textures/UVs, skips camera/light clutter, optimizes geometry & textures through the GLB pipeline, caches the result by file modification time, and supports direct export to Bambu Multi-Color `.3mf` or `.stl`!
 
 ## Calling the Tools
 
@@ -89,5 +91,5 @@ Pass 1 to 5 files in `models` using **absolute file paths**:
 - **Prefer `.3mf` over `.stl`** when both exist for a multi-color Bambu Lab model so all filament colors and painted regions display faithfully.
 - **Give monochrome STLs distinct optional `color` hints** when comparing multiple parts (e.g., frame vs. seat vs. bar) so they are visually distinct in Color mode and snap cleanly to neutral grey when Color is toggled OFF.
 - **More than 5 files**: Group into the most relevant 5 files (e.g., latest iterations or key sub-assemblies) and mention any omitted files so the user can swap them in.
-- **CAD source files (`.blend`, `.step`, `.stp`, `.f3d`)**: Convert/export to `.3mf` (multi-color) or `.stl`/`.glb` first before passing to `open_3d_viewer`.
+- **Other CAD source files (`.step`, `.stp`, `.f3d`)**: Convert/export to `.3mf` (multi-color) or `.stl`/`.glb` first before passing to `open_3d_viewer`. Blender `.blend` files can be passed directly!
 - **No ad-hoc HTML viewers**: Do not write standalone Three.js HTML files or launch external macOS apps with `open` unless the user explicitly requests an external file or desktop app.

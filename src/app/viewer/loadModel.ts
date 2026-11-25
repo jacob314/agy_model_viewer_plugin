@@ -119,8 +119,9 @@ function normalizeAndWrap(
     countedTris = Math.round(countedTris);
   }
 
-  // glTF/GLB standard units are meters; convert < 2.5m spans to millimeters for accurate 3D print readout
-  const gltfToMm = !explicitDimsMm && formatLabel === 'GLB' && maxSpan < 2.5 ? 1000 : 1;
+  // glTF/GLB (and Blender->GLB) standard units are meters; convert < 2.5m spans to millimeters for accurate 3D print readout
+  const isMeterBased = !explicitDimsMm && (formatLabel === 'GLB' || formatLabel === 'BLEND') && maxSpan < 2.5;
+  const gltfToMm = isMeterBased ? 1000 : 1;
   const dimsMm: [number, number, number] = explicitDimsMm ?? [
     rawSize.x * gltfToMm,
     rawSize.z * gltfToMm,
@@ -193,7 +194,11 @@ function buildFromM3dv(bytes: Uint8Array): LoadedModelBundle {
   );
 }
 
-async function buildFromGlb(bytes: Uint8Array, fetchAsset?: FetchAssetFn): Promise<LoadedModelBundle> {
+async function buildFromGlb(
+  bytes: Uint8Array,
+  fetchAsset?: FetchAssetFn,
+  formatLabel = 'GLB',
+): Promise<LoadedModelBundle> {
   const loader = new GLTFLoader();
   // Antigravity's strict MCP App CSP blocks fetch('blob:...') (connect-src 'none') used by ImageBitmapLoader,
   // while permitting blob:/data: via <img> (img-src data: blob:). Force TextureLoader so embedded GLB textures
@@ -228,7 +233,7 @@ async function buildFromGlb(bytes: Uint8Array, fetchAsset?: FetchAssetFn): Promi
     }
   });
 
-  return normalizeAndWrap(content, appearance, 'y', undefined, 0, 0, false, 'GLB');
+  return normalizeAndWrap(content, appearance, 'y', undefined, 0, 0, false, formatLabel);
 }
 
 async function buildFromObj(
@@ -384,7 +389,9 @@ export async function loadModelFromBytes(
       return buildFromRaw3mf(bytes, color);
     case 'glb':
     case 'gltf':
-      return buildFromGlb(bytes, fetchAsset);
+      return buildFromGlb(bytes, fetchAsset, 'GLB');
+    case 'blend':
+      return buildFromGlb(bytes, fetchAsset, 'BLEND');
     case 'obj':
       return buildFromObj(bytes, color, fetchAsset);
     case 'ply':

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { parseStlToM3dv } from './parseStl.js';
 import { parse3mfToM3dv } from './parse3mf.js';
 import { optimizeGlbIfNeeded } from './optimizeGlb.js';
+import { convertBlendToOptimizedGlb } from './convertBlend.js';
 import { exportServerRegisteredModel, pickNonClobberingPath } from './serverExport.js';
 import type {
   BackdropMode,
@@ -46,6 +47,7 @@ const SUPPORTED_EXT_MAP: Record<string, SupportedFormat> = {
   '.gltf': 'gltf',
   '.obj': 'obj',
   '.ply': 'ply',
+  '.blend': 'blend',
 };
 
 interface RegisteredModel {
@@ -138,7 +140,7 @@ function registerModelList(
     const format = SUPPORTED_EXT_MAP[ext];
     if (!format) {
       throw new Error(
-        `Unsupported 3D format "${ext}" for ${path.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply`,
+        `Unsupported 3D format "${ext}" for ${path.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply, .blend`,
       );
     }
 
@@ -217,6 +219,25 @@ async function getOptimizedGlbBuffer(reg: RegisteredModel): Promise<Buffer> {
   return optimized;
 }
 
+async function getConvertedBlendBuffer(reg: RegisteredModel): Promise<Buffer> {
+  const stat = fs.statSync(reg.absPath);
+  const cached = compiledM3dvCache.get(reg.id);
+  if (cached && cached.mtimeMs === stat.mtimeMs) {
+    return cached.buffer;
+  }
+  const optimized = await convertBlendToOptimizedGlb(reg.absPath, DATA_DIR);
+  if (compiledM3dvCache.size >= 10) {
+    const oldestKey = compiledM3dvCache.keys().next().value;
+    if (oldestKey) compiledM3dvCache.delete(oldestKey);
+  }
+  compiledM3dvCache.set(reg.id, {
+    mtimeMs: stat.mtimeMs,
+    defaultColor: reg.meta.defaultColor || '#38BDF8',
+    buffer: optimized,
+  });
+  return optimized;
+}
+
 function mimeForFile(name: string): string {
   const ext = path.extname(name).toLowerCase();
   switch (ext) {
@@ -243,7 +264,7 @@ function readAppHtml(): string {
 }
 
 const ModelInputSchema = z.object({
-  path: z.string().describe('Absolute path to a .3mf, .stl, .obj, .glb, .gltf, or .ply file'),
+  path: z.string().describe('Absolute path to a .3mf, .stl, .obj, .glb, .gltf, .ply, or .blend file'),
   label: z.string().optional().describe('Short label for the model tab (max ~24 chars recommended)'),
   color: z.string().optional().describe('Optional #RRGGBB default filament color for monochrome meshes'),
 });
@@ -253,7 +274,7 @@ const ViewerArgsShape = {
     .array(ModelInputSchema)
     .max(5)
     .optional()
-    .describe('Up to 5 3D printing model files (.3mf, .stl, .obj, .glb, .gltf, .ply) to toggle between'),
+    .describe('Up to 5 3D printing model files (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend) to toggle between'),
   activeIndex: z
     .number()
     .int()
@@ -357,7 +378,7 @@ function buildViewerSessionResult(
 const server = new McpServer(
   {
     name: 'model3d-viewer',
-    version: '1.4.1',
+    version: '1.5.0',
   },
   {
     capabilities: {
@@ -396,7 +417,7 @@ server.registerTool(
   {
     title: '3D Print Viewer',
     description:
-      'Open or update up to 5 STL or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply) in the full-height 3D Print Viewer side panel. Primary default viewer.',
+      'Open or update up to 5 STL, Blender (.blend), or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend) in the full-height 3D Print Viewer side panel. Primary default viewer.',
     inputSchema: ViewerArgsShape,
     _meta: {
       ui: {
@@ -416,7 +437,7 @@ server.registerTool(
   {
     title: 'Inline 3D Preview',
     description:
-      'Render a compact interactive 3D preview inline in the chat message for 1 to 5 STL or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply).',
+      'Render a compact interactive 3D preview inline in the chat message for 1 to 5 STL, Blender (.blend), or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend).',
     inputSchema: {
       ...ViewerArgsShape,
       models: z
@@ -434,13 +455,13 @@ server.registerTool(
   async (args) => buildViewerSessionResult('inline', args),
 );
 
-// 3. Custom File Viewer entrypoint: opens any .3mf/.stl/.glb/.gltf/.obj/.ply directly in the side panel
+// 3. Custom File Viewer entrypoint: opens any .3mf/.stl/.glb/.gltf/.obj/.ply/.blend directly in the side panel
 //    AND powers zero-turn instant promotion from inline previews via com.google.antigravity/toggle-aux-pane!
 server.registerTool(
   'view_3d_file',
   {
     title: '3D Print Viewer',
-    description: 'Host-invoked custom file viewer for 3D printing models (.3mf, .stl, .glb, .gltf, .obj, .ply).',
+    description: 'Host-invoked custom file viewer for 3D printing models (.3mf, .stl, .glb, .gltf, .obj, .ply, .blend).',
     inputSchema: {
       file: z
         .object({
@@ -459,7 +480,7 @@ server.registerTool(
           {
             type: 'file',
             title: '3D Print Viewer',
-            extensions: ['.3mf', '.stl', '.glb', '.gltf', '.obj', '.ply'],
+            extensions: ['.3mf', '.stl', '.glb', '.gltf', '.obj', '.ply', '.blend'],
           },
         ],
       },
@@ -663,6 +684,9 @@ server.registerTool(
       mimeType = 'application/x-m3dv';
     } else if (reg.meta.format === 'glb') {
       dataBuffer = await getOptimizedGlbBuffer(reg);
+      mimeType = 'model/gltf-binary';
+    } else if (reg.meta.format === 'blend') {
+      dataBuffer = await getConvertedBlendBuffer(reg);
       mimeType = 'model/gltf-binary';
     } else {
       dataBuffer = fs.readFileSync(reg.absPath);

@@ -102,7 +102,7 @@ const sceneManager = new SceneManager(canvasHost, {
   },
 });
 
-const app = new App({ name: '3D Print Model Viewer', version: '1.4.1' }, {});
+const app = new App({ name: '3D Print Model Viewer', version: '1.5.0' }, {});
 let mcpConnected = false;
 let lastExportedPath = '';
 let lastFailedFileName = '';
@@ -571,6 +571,13 @@ async function openHostFileViewer(file: FileViewerPayload['file']): Promise<void
   btnPopSidePane.classList.add('hidden');
 
   const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'blend') {
+    showError(
+      `${file.name} is a Blender file and needs server-side Blender conversion. Click below to open it via the 3D Print Viewer server.`,
+      file.name,
+    );
+    return;
+  }
   const supported = new Set(['stl', '3mf', 'glb', 'gltf', 'obj', 'ply']);
   if (!supported.has(ext)) {
     showError(`Unsupported 3D file extension ".${ext}" for ${file.name}`);

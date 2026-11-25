@@ -3258,8 +3258,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path4) {
-      let input = path4;
+    function removeDotSegments(path5) {
+      let input = path5;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3333,11 +3333,11 @@ var require_utils = __commonJS({
       }
       return output.join("");
     }
-    function removeDotSegmentsRelative(path4) {
-      if (path4 === "" || path4[0] === "/") {
-        return removeDotSegments(path4);
+    function removeDotSegmentsRelative(path5) {
+      if (path5 === "" || path5[0] === "/") {
+        return removeDotSegments(path5);
       }
-      const segments = path4.split("/");
+      const segments = path5.split("/");
       const last = segments.length - 1;
       const output = [];
       let trailingDirectory = false;
@@ -3700,8 +3700,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path4 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path4 && path4 !== "/" ? path4 : void 0;
+        const path5 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path5 && path5 !== "/" ? path5 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7238,12 +7238,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs4, exportName) {
+    function addFormats(ajv, list, fs5, exportName) {
       var _a2;
       var _b2;
       (_a2 = (_b2 = ajv.opts.code).formats) !== null && _a2 !== void 0 ? _a2 : _b2.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs4[f]);
+        ajv.addFormat(f, fs5[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -7252,9 +7252,9 @@ var require_dist = __commonJS({
 });
 
 // src/server/index.ts
-import fs3 from "node:fs";
-import path3 from "node:path";
-import crypto from "node:crypto";
+import fs4 from "node:fs";
+import path4 from "node:path";
+import crypto2 from "node:crypto";
 import { fileURLToPath as fileURLToPath2, pathToFileURL } from "node:url";
 
 // node_modules/zod/v3/external.js
@@ -7735,8 +7735,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path4, errorMaps, issueData } = params;
-  const fullPath = [...path4, ...issueData.path || []];
+  const { data, path: path5, errorMaps, issueData } = params;
+  const fullPath = [...path5, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7852,11 +7852,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path4, key) {
+  constructor(parent, value, path5, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path4;
+    this._path = path5;
     this._key = key;
   }
   get path() {
@@ -11494,10 +11494,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path4) {
-  if (!path4)
+function getElementAtPath(obj, path5) {
+  if (!path5)
     return obj;
-  return path4.reduce((acc, key) => acc?.[key], obj);
+  return path5.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11817,11 +11817,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path4, issues) {
+function prefixIssues(path5, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path4);
+    iss.path.unshift(path5);
     return iss;
   });
 }
@@ -15234,11 +15234,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path4) {
-  if (path4.length === 0) {
+function getDotPath(path5) {
+  if (path5.length === 0) {
     return "object root";
   }
-  return path4.reduce((acc, seg, index) => {
+  return path5.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -24091,10 +24091,161 @@ async function optimizeGlbIfNeeded(rawBuf) {
   return out;
 }
 
-// src/server/serverExport.ts
+// src/server/convertBlend.ts
 import fs2 from "node:fs";
 import os2 from "node:os";
 import path2 from "node:path";
+import crypto from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+var execFileAsync = promisify(execFile);
+var MAX_CACHED_BLENDS = 12;
+var cachedBlenderBin;
+function findBlenderBinary() {
+  if (cachedBlenderBin !== void 0) return cachedBlenderBin;
+  const candidates = [];
+  if (process.env.BLENDER_PATH) {
+    candidates.push(process.env.BLENDER_PATH);
+  }
+  if (process.platform === "darwin") {
+    candidates.push("/Applications/Blender.app/Contents/MacOS/Blender");
+    try {
+      const apps = fs2.readdirSync("/Applications");
+      for (const entry of apps) {
+        if (/^Blender.*\.app$/i.test(entry) && entry !== "Blender.app") {
+          candidates.push(path2.join("/Applications", entry, "Contents/MacOS/Blender"));
+        }
+      }
+    } catch {
+    }
+    candidates.push("/opt/homebrew/bin/blender", "/usr/local/bin/blender");
+  } else if (process.platform === "win32") {
+    const pf = process.env["ProgramFiles"] || "C:\\Program Files";
+    try {
+      const bfDir = path2.join(pf, "Blender Foundation");
+      if (fs2.existsSync(bfDir)) {
+        for (const sub of fs2.readdirSync(bfDir).sort().reverse()) {
+          candidates.push(path2.join(bfDir, sub, "blender.exe"));
+        }
+      }
+    } catch {
+    }
+  } else {
+    candidates.push("/usr/bin/blender", "/usr/local/bin/blender", "/snap/bin/blender");
+  }
+  const pathEnv = process.env.PATH || "";
+  for (const dir of pathEnv.split(path2.delimiter)) {
+    if (!dir) continue;
+    candidates.push(path2.join(dir, process.platform === "win32" ? "blender.exe" : "blender"));
+  }
+  for (const c of candidates) {
+    try {
+      if (fs2.existsSync(c) && fs2.statSync(c).isFile()) {
+        fs2.accessSync(c, fs2.constants.X_OK);
+        cachedBlenderBin = c;
+        return c;
+      }
+    } catch {
+    }
+  }
+  cachedBlenderBin = null;
+  return null;
+}
+var BLEND_TO_GLB_PY = `
+import bpy, sys, os
+
+out_path = sys.argv[-1]
+props = set(bpy.ops.export_scene.gltf.get_rna_type().properties.keys())
+
+def has_visible_geo():
+    for obj in bpy.context.scene.objects:
+        if obj.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'} and obj.visible_get():
+            return True
+    return False
+
+use_vis = has_visible_geo()
+
+kwargs = {
+    'filepath': out_path,
+    'export_format': 'GLB',
+    'use_visible': use_vis,
+    'export_apply': True,
+    'export_cameras': False,
+    'export_lights': False,
+    'export_animations': False,
+    'export_materials': 'EXPORT',
+    'export_texcoords': True,
+    'export_normals': True,
+}
+if 'export_attributes' in props:
+    kwargs['export_attributes'] = True
+elif 'export_colors' in props:
+    kwargs['export_colors'] = True
+
+# Filter kwargs to supported RNA properties for cross-version safety
+safe_kwargs = {k: v for k, v in kwargs.items() if k in props}
+bpy.ops.export_scene.gltf(**safe_kwargs)
+if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+    raise RuntimeError('Blender produced an empty GLB export')
+`;
+function pruneCacheDir(cacheDir) {
+  try {
+    const entries = fs2.readdirSync(cacheDir).filter((f) => f.endsWith(".glb")).map((f) => {
+      const full = path2.join(cacheDir, f);
+      return { full, mtimeMs: fs2.statSync(full).mtimeMs };
+    }).sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (const stale of entries.slice(MAX_CACHED_BLENDS)) {
+      fs2.rmSync(stale.full, { force: true });
+    }
+  } catch {
+  }
+}
+async function convertBlendToOptimizedGlb(blendAbsPath, dataDir) {
+  const stat = fs2.statSync(blendAbsPath);
+  const cacheDir = path2.join(dataDir, "blend_cache");
+  const hash = crypto.createHash("sha256").update(`${blendAbsPath}|${stat.mtimeMs}|${stat.size}`).digest("hex").slice(0, 20);
+  const cachePath = path2.join(cacheDir, `${hash}.glb`);
+  if (fs2.existsSync(cachePath)) {
+    return fs2.readFileSync(cachePath);
+  }
+  const blenderBin = findBlenderBinary();
+  if (!blenderBin) {
+    throw new Error(
+      "Blender is required to view .blend files directly. Install Blender (e.g. /Applications/Blender.app) or set BLENDER_PATH."
+    );
+  }
+  const tmpDir = fs2.mkdtempSync(path2.join(os2.tmpdir(), "m3dv-blend-"));
+  const rawGlbPath = path2.join(tmpDir, "export.glb");
+  try {
+    await execFileAsync(
+      blenderBin,
+      ["-b", "--factory-startup", blendAbsPath, "--python-expr", BLEND_TO_GLB_PY, "--", rawGlbPath],
+      {
+        timeout: 9e4,
+        maxBuffer: 10 * 1024 * 1024
+      }
+    );
+    if (!fs2.existsSync(rawGlbPath)) {
+      throw new Error(`Blender failed to export ${path2.basename(blendAbsPath)} to GLB.`);
+    }
+    const rawGlb = fs2.readFileSync(rawGlbPath);
+    const optimized = await optimizeGlbIfNeeded(rawGlb);
+    try {
+      fs2.mkdirSync(cacheDir, { recursive: true });
+      fs2.writeFileSync(cachePath, optimized);
+      pruneCacheDir(cacheDir);
+    } catch {
+    }
+    return optimized;
+  } finally {
+    fs2.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// src/server/serverExport.ts
+import fs3 from "node:fs";
+import os3 from "node:os";
+import path3 from "node:path";
 
 // src/shared/bambu/palette.ts
 var BASIC_PBR = { roughness: 0.42, metalness: 0.04 };
@@ -24577,27 +24728,27 @@ function unpackM3dvToGroups(bytes) {
 }
 function pickNonClobberingPath(dirPath, baseStem, extWithDot) {
   const safeStem = baseStem.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "model_export";
-  const targetDir = dirPath && fs2.existsSync(dirPath) ? dirPath : path2.join(os2.homedir(), "Downloads");
-  fs2.mkdirSync(targetDir, { recursive: true });
-  let candidate = path2.join(targetDir, `${safeStem}${extWithDot}`);
+  const targetDir = dirPath && fs3.existsSync(dirPath) ? dirPath : path3.join(os3.homedir(), "Downloads");
+  fs3.mkdirSync(targetDir, { recursive: true });
+  let candidate = path3.join(targetDir, `${safeStem}${extWithDot}`);
   let n = 2;
-  while (fs2.existsSync(candidate)) {
-    candidate = path2.join(targetDir, `${safeStem}_${n}${extWithDot}`);
+  while (fs3.existsSync(candidate)) {
+    candidate = path3.join(targetDir, `${safeStem}_${n}${extWithDot}`);
     n++;
   }
   return candidate;
 }
 function exportServerRegisteredModel(params) {
-  const dirPath = path2.dirname(params.absPath);
-  const origStem = path2.basename(params.absPath, path2.extname(params.absPath));
-  const rawBuf = fs2.readFileSync(params.absPath);
+  const dirPath = path3.dirname(params.absPath);
+  const origStem = path3.basename(params.absPath, path3.extname(params.absPath));
+  const rawBuf = fs3.readFileSync(params.absPath);
   if (params.format === "stl" && params.exportFormat === "stl") {
     const savedPath2 = pickNonClobberingPath(dirPath, `${origStem}_print`, ".stl");
-    fs2.writeFileSync(savedPath2, rawBuf);
+    fs3.writeFileSync(savedPath2, rawBuf);
     const triCount = rawBuf.length >= 84 ? rawBuf.readUInt32LE(80) : 0;
     return {
       savedPath: savedPath2,
-      fileName: path2.basename(savedPath2),
+      fileName: path3.basename(savedPath2),
       sizeBytes: rawBuf.length,
       triangleCount: triCount
     };
@@ -24610,10 +24761,10 @@ function exportServerRegisteredModel(params) {
   if (params.exportFormat === "stl") {
     const { bytes: bytes2, triangleCount: triangleCount2 } = buildBinaryStl(groups, true);
     const savedPath2 = pickNonClobberingPath(dirPath, `${origStem}_print`, ".stl");
-    fs2.writeFileSync(savedPath2, bytes2);
+    fs3.writeFileSync(savedPath2, bytes2);
     return {
       savedPath: savedPath2,
-      fileName: path2.basename(savedPath2),
+      fileName: path3.basename(savedPath2),
       sizeBytes: bytes2.byteLength,
       triangleCount: triangleCount2
     };
@@ -24634,10 +24785,10 @@ function exportServerRegisteredModel(params) {
     groundOnBuildPlate: true
   });
   const savedPath = pickNonClobberingPath(dirPath, `${origStem}${suffix}`, ".3mf");
-  fs2.writeFileSync(savedPath, bytes);
+  fs3.writeFileSync(savedPath, bytes);
   return {
     savedPath,
-    fileName: path2.basename(savedPath),
+    fileName: path3.basename(savedPath),
     sizeBytes: bytes.byteLength,
     triangleCount,
     filaments
@@ -24648,9 +24799,9 @@ function exportServerRegisteredModel(params) {
 var APP_URI = "ui://model3d-viewer/app.html";
 var CHUNK_SIZE_BYTES = 524288;
 var PROMOTED_SESSION_TTL_MS = 3e4;
-var __dirname2 = path3.dirname(fileURLToPath2(import.meta.url));
-var PLUGIN_ROOT = path3.resolve(__dirname2, "..");
-var DATA_DIR = path3.join(PLUGIN_ROOT, ".data");
+var __dirname2 = path4.dirname(fileURLToPath2(import.meta.url));
+var PLUGIN_ROOT = path4.resolve(__dirname2, "..");
+var DATA_DIR = path4.join(PLUGIN_ROOT, ".data");
 for (const arg of process.argv.slice(2)) {
   if (arg.startsWith("--data-dir=")) {
     DATA_DIR = arg.slice("--data-dir=".length);
@@ -24663,30 +24814,31 @@ var SUPPORTED_EXT_MAP = {
   ".glb": "glb",
   ".gltf": "gltf",
   ".obj": "obj",
-  ".ply": "ply"
+  ".ply": "ply",
+  ".blend": "blend"
 };
 var registeredModels = /* @__PURE__ */ new Map();
 var compiledM3dvCache = /* @__PURE__ */ new Map();
 var pendingExportUploads = /* @__PURE__ */ new Map();
 var pendingPromotedSession = null;
 function lastSessionPath() {
-  return path3.join(DATA_DIR, "last_session.json");
+  return path4.join(DATA_DIR, "last_session.json");
 }
 function saveLastSession(session) {
   try {
-    fs3.mkdirSync(DATA_DIR, { recursive: true });
-    fs3.writeFileSync(lastSessionPath(), JSON.stringify(session, null, 2), "utf8");
+    fs4.mkdirSync(DATA_DIR, { recursive: true });
+    fs4.writeFileSync(lastSessionPath(), JSON.stringify(session, null, 2), "utf8");
   } catch {
   }
 }
 function loadLastSession() {
   try {
     const p = lastSessionPath();
-    if (!fs3.existsSync(p)) return null;
-    const raw = JSON.parse(fs3.readFileSync(p, "utf8"));
+    if (!fs4.existsSync(p)) return null;
+    const raw = JSON.parse(fs4.readFileSync(p, "utf8"));
     if (!raw || !Array.isArray(raw.models)) return null;
     const existing = raw.models.filter(
-      (m) => typeof m?.path === "string" && fs3.existsSync(m.path)
+      (m) => typeof m?.path === "string" && fs4.existsSync(m.path)
     );
     if (existing.length === 0) return null;
     return { ...raw, models: existing.slice(0, 5) };
@@ -24695,30 +24847,30 @@ function loadLastSession() {
   }
 }
 function makeModelId(absPath, defaultColor) {
-  return crypto.createHash("sha256").update(`${absPath}|${defaultColor}`).digest("hex").slice(0, 16);
+  return crypto2.createHash("sha256").update(`${absPath}|${defaultColor}`).digest("hex").slice(0, 16);
 }
 function registerModelList(items) {
   const metas = [];
   for (let i = 0; i < Math.min(items.length, 5); i++) {
     const item = items[i];
-    const absPath = path3.resolve(item.path);
-    if (!fs3.existsSync(absPath)) {
+    const absPath = path4.resolve(item.path);
+    if (!fs4.existsSync(absPath)) {
       throw new Error(`File not found: ${absPath}`);
     }
-    const stat = fs3.statSync(absPath);
+    const stat = fs4.statSync(absPath);
     if (!stat.isFile()) {
       throw new Error(`Path is not a file: ${absPath}`);
     }
-    const ext = path3.extname(absPath).toLowerCase();
+    const ext = path4.extname(absPath).toLowerCase();
     const format = SUPPORTED_EXT_MAP[ext];
     if (!format) {
       throw new Error(
-        `Unsupported 3D format "${ext}" for ${path3.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply`
+        `Unsupported 3D format "${ext}" for ${path4.basename(absPath)}. Supported: .3mf, .stl, .obj, .glb, .gltf, .ply, .blend`
       );
     }
     const defaultColor = item.color && /^#?[0-9a-fA-F]{6}$/.test(item.color) ? (item.color.startsWith("#") ? item.color : `#${item.color}`).toUpperCase() : DEFAULT_SLOT_COLORS[i % DEFAULT_SLOT_COLORS.length];
     const id = makeModelId(absPath, defaultColor);
-    const fileName = path3.basename(absPath);
+    const fileName = path4.basename(absPath);
     const label = item.label && item.label.trim() || fileName.replace(/\.[^.]+$/, "");
     const transport = format === "3mf" || format === "stl" ? "m3dv" : "raw";
     const meta = {
@@ -24733,7 +24885,7 @@ function registerModelList(items) {
     registeredModels.set(id, {
       id,
       absPath,
-      dirPath: path3.dirname(absPath),
+      dirPath: path4.dirname(absPath),
       meta
     });
     metas.push(meta);
@@ -24741,13 +24893,13 @@ function registerModelList(items) {
   return metas;
 }
 function getCompiledBuffer(reg) {
-  const stat = fs3.statSync(reg.absPath);
+  const stat = fs4.statSync(reg.absPath);
   const color = reg.meta.defaultColor || "#4F8EF7";
   const cached2 = compiledM3dvCache.get(reg.id);
   if (cached2 && cached2.mtimeMs === stat.mtimeMs && cached2.defaultColor === color) {
     return cached2.buffer;
   }
-  const rawBuf = fs3.readFileSync(reg.absPath);
+  const rawBuf = fs4.readFileSync(reg.absPath);
   const compiled = reg.meta.format === "3mf" ? parse3mfToM3dv(rawBuf, color) : parseStlToM3dv(rawBuf, color);
   if (compiledM3dvCache.size >= 10) {
     const oldestKey = compiledM3dvCache.keys().next().value;
@@ -24757,12 +24909,12 @@ function getCompiledBuffer(reg) {
   return compiled;
 }
 async function getOptimizedGlbBuffer(reg) {
-  const stat = fs3.statSync(reg.absPath);
+  const stat = fs4.statSync(reg.absPath);
   const cached2 = compiledM3dvCache.get(reg.id);
   if (cached2 && cached2.mtimeMs === stat.mtimeMs) {
     return cached2.buffer;
   }
-  const rawBuf = fs3.readFileSync(reg.absPath);
+  const rawBuf = fs4.readFileSync(reg.absPath);
   const optimized = await optimizeGlbIfNeeded(rawBuf);
   if (compiledM3dvCache.size >= 10) {
     const oldestKey = compiledM3dvCache.keys().next().value;
@@ -24775,8 +24927,26 @@ async function getOptimizedGlbBuffer(reg) {
   });
   return optimized;
 }
+async function getConvertedBlendBuffer(reg) {
+  const stat = fs4.statSync(reg.absPath);
+  const cached2 = compiledM3dvCache.get(reg.id);
+  if (cached2 && cached2.mtimeMs === stat.mtimeMs) {
+    return cached2.buffer;
+  }
+  const optimized = await convertBlendToOptimizedGlb(reg.absPath, DATA_DIR);
+  if (compiledM3dvCache.size >= 10) {
+    const oldestKey = compiledM3dvCache.keys().next().value;
+    if (oldestKey) compiledM3dvCache.delete(oldestKey);
+  }
+  compiledM3dvCache.set(reg.id, {
+    mtimeMs: stat.mtimeMs,
+    defaultColor: reg.meta.defaultColor || "#38BDF8",
+    buffer: optimized
+  });
+  return optimized;
+}
 function mimeForFile(name) {
-  const ext = path3.extname(name).toLowerCase();
+  const ext = path4.extname(name).toLowerCase();
   switch (ext) {
     case ".glb":
       return "model/gltf-binary";
@@ -24801,19 +24971,19 @@ function mimeForFile(name) {
 }
 function readAppHtml() {
   const override = process.env.MODEL3D_VIEWER_APP_HTML;
-  const htmlPath = override || path3.join(PLUGIN_ROOT, "dist", "index.html");
-  if (!fs3.existsSync(htmlPath)) {
+  const htmlPath = override || path4.join(PLUGIN_ROOT, "dist", "index.html");
+  if (!fs4.existsSync(htmlPath)) {
     throw new Error(`Viewer HTML bundle missing at ${htmlPath}. Run npm run build.`);
   }
-  return fs3.readFileSync(htmlPath, "utf8");
+  return fs4.readFileSync(htmlPath, "utf8");
 }
 var ModelInputSchema = external_exports.object({
-  path: external_exports.string().describe("Absolute path to a .3mf, .stl, .obj, .glb, .gltf, or .ply file"),
+  path: external_exports.string().describe("Absolute path to a .3mf, .stl, .obj, .glb, .gltf, .ply, or .blend file"),
   label: external_exports.string().optional().describe("Short label for the model tab (max ~24 chars recommended)"),
   color: external_exports.string().optional().describe("Optional #RRGGBB default filament color for monochrome meshes")
 });
 var ViewerArgsShape = {
-  models: external_exports.array(ModelInputSchema).max(5).optional().describe("Up to 5 3D printing model files (.3mf, .stl, .obj, .glb, .gltf, .ply) to toggle between"),
+  models: external_exports.array(ModelInputSchema).max(5).optional().describe("Up to 5 3D printing model files (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend) to toggle between"),
   activeIndex: external_exports.number().int().min(0).max(4).optional().describe("0-based index of the initially active model slot (default 0)"),
   title: external_exports.string().optional().describe("Optional title displayed in the viewer header"),
   background: external_exports.enum(["black", "desk"]).optional().describe('Initial backdrop: "black" (default, high contrast) or "desk" (natural oak desk)'),
@@ -24857,7 +25027,7 @@ function buildViewerSessionResult(layout, args) {
   const clampedActive = metas.length > 0 ? Math.min(Math.max(0, effectiveActive), metas.length - 1) : 0;
   const payload = {
     kind: "session",
-    sessionId: crypto.randomUUID(),
+    sessionId: crypto2.randomUUID(),
     layout,
     title: effectiveTitle || (metas.length === 1 ? metas[0].label : "3D Print Viewer"),
     activeIndex: clampedActive,
@@ -24876,7 +25046,7 @@ function buildViewerSessionResult(layout, args) {
 var server = new McpServer(
   {
     name: "model3d-viewer",
-    version: "1.4.1"
+    version: "1.5.0"
   },
   {
     capabilities: {
@@ -24911,7 +25081,7 @@ server.registerTool(
   "open_3d_viewer",
   {
     title: "3D Print Viewer",
-    description: "Open or update up to 5 STL or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply) in the full-height 3D Print Viewer side panel. Primary default viewer.",
+    description: "Open or update up to 5 STL, Blender (.blend), or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend) in the full-height 3D Print Viewer side panel. Primary default viewer.",
     inputSchema: ViewerArgsShape,
     _meta: {
       ui: {
@@ -24928,7 +25098,7 @@ server.registerTool(
   "preview_3d_models_inline",
   {
     title: "Inline 3D Preview",
-    description: "Render a compact interactive 3D preview inline in the chat message for 1 to 5 STL or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply).",
+    description: "Render a compact interactive 3D preview inline in the chat message for 1 to 5 STL, Blender (.blend), or Bambu Studio multi-color 3D models (.3mf, .stl, .obj, .glb, .gltf, .ply, .blend).",
     inputSchema: {
       ...ViewerArgsShape,
       models: external_exports.array(ModelInputSchema).min(1).max(5).describe("1 to 5 3D printing model files to preview inline")
@@ -24945,7 +25115,7 @@ server.registerTool(
   "view_3d_file",
   {
     title: "3D Print Viewer",
-    description: "Host-invoked custom file viewer for 3D printing models (.3mf, .stl, .glb, .gltf, .obj, .ply).",
+    description: "Host-invoked custom file viewer for 3D printing models (.3mf, .stl, .glb, .gltf, .obj, .ply, .blend).",
     inputSchema: {
       file: external_exports.object({
         name: external_exports.string(),
@@ -24962,7 +25132,7 @@ server.registerTool(
           {
             type: "file",
             title: "3D Print Viewer",
-            extensions: [".3mf", ".stl", ".glb", ".gltf", ".obj", ".ply"]
+            extensions: [".3mf", ".stl", ".glb", ".gltf", ".obj", ".ply", ".blend"]
           }
         ]
       }
@@ -24986,10 +25156,10 @@ server.registerTool(
       return buildViewerSessionResult("pane", {});
     }
     for (const reg of registeredModels.values()) {
-      if (reg.meta.fileName.toLowerCase() === file.name.toLowerCase() && fs3.existsSync(reg.absPath)) {
+      if (reg.meta.fileName.toLowerCase() === file.name.toLowerCase() && fs4.existsSync(reg.absPath)) {
         const sessionPayload = {
           kind: "session",
-          sessionId: crypto.randomUUID(),
+          sessionId: crypto2.randomUUID(),
           layout: "pane",
           title: reg.meta.label,
           activeIndex: 0,
@@ -25056,7 +25226,7 @@ server.registerTool(
     const fileUri = pathToFileURL(activeReg.absPath).href;
     const promotedPayload = {
       kind: "session",
-      sessionId: crypto.randomUUID(),
+      sessionId: crypto2.randomUUID(),
       layout: "pane",
       title: title || (regs.length === 1 ? activeReg.meta.label : "3D Print Viewer"),
       activeIndex: clampedActive,
@@ -25124,15 +25294,15 @@ server.registerTool(
     let resolvedAssetName = reg.meta.fileName;
     if (assetName) {
       const safeRel = assetName.replace(/\\/g, "/").replace(/^\/+/, "");
-      const candidate = path3.resolve(reg.dirPath, safeRel);
-      const relCheck = path3.relative(reg.dirPath, candidate);
-      if (relCheck.startsWith("..") || path3.isAbsolute(relCheck) || !fs3.existsSync(candidate)) {
+      const candidate = path4.resolve(reg.dirPath, safeRel);
+      const relCheck = path4.relative(reg.dirPath, candidate);
+      if (relCheck.startsWith("..") || path4.isAbsolute(relCheck) || !fs4.existsSync(candidate)) {
         return {
           isError: true,
           content: [{ type: "text", text: `Sibling asset not found or disallowed: ${assetName}` }]
         };
       }
-      dataBuffer = fs3.readFileSync(candidate);
+      dataBuffer = fs4.readFileSync(candidate);
       transport = "raw";
       mimeType = mimeForFile(candidate);
       resolvedAssetName = safeRel;
@@ -25142,8 +25312,11 @@ server.registerTool(
     } else if (reg.meta.format === "glb") {
       dataBuffer = await getOptimizedGlbBuffer(reg);
       mimeType = "model/gltf-binary";
+    } else if (reg.meta.format === "blend") {
+      dataBuffer = await getConvertedBlendBuffer(reg);
+      mimeType = "model/gltf-binary";
     } else {
-      dataBuffer = fs3.readFileSync(reg.absPath);
+      dataBuffer = fs4.readFileSync(reg.absPath);
       mimeType = mimeForFile(reg.absPath);
     }
     const totalBytes = dataBuffer.length;
@@ -25295,10 +25468,10 @@ server.registerTool(
     const reg = modelId ? registeredModels.get(modelId) : void 0;
     const targetDir = reg ? reg.dirPath : "";
     const savedPath = pickNonClobberingPath(targetDir, baseStem, extWithDot);
-    fs3.writeFileSync(savedPath, fullBuf);
+    fs4.writeFileSync(savedPath, fullBuf);
     const resp = {
       savedPath,
-      fileName: path3.basename(savedPath),
+      fileName: path4.basename(savedPath),
       sizeBytes: fullBuf.length,
       exportFormat,
       triangleCount,

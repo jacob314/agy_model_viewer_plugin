@@ -1,7 +1,7 @@
 export type BackdropMode = 'black' | 'desk';
 export type ColorMode = 'color' | 'grey';
 export type ViewerLayout = 'pane' | 'inline';
-export type SupportedFormat = '3mf' | 'stl' | 'glb' | 'gltf' | 'obj' | 'ply';
+export type SupportedFormat = '3mf' | 'stl' | 'glb' | 'gltf' | 'obj' | 'ply' | 'blend';
 
 export interface ModelSlotMeta {
   id: string;
