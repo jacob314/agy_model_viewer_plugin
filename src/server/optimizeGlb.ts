@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OPTIMIZE_SIZE_THRESHOLD = 6 * 1024 * 1024; // Optimize GLBs > 6 MB (or any Draco-compressed GLB)
-const MAX_TOTAL_TRIANGLES = 240_000;
+const MAX_TOTAL_TRIANGLES = 320_000;
 const TEXTURE_RESIZE_THRESHOLD = 350 * 1024; // Downscale embedded textures > 350 KB
 const MAX_TEXTURE_DIM = 1024;
 
@@ -217,6 +217,7 @@ function readIndicesAsUint32(gltf: GltfJson, bin: Buffer, accIdx: number): Uint3
 
 interface DecodedPrimitive {
   positions: Float32Array;
+  normals: Float32Array | null;
   uvs: Float32Array | null;
   colors: Float32Array | null;
   colorComponents: number; // 3 or 4
@@ -276,6 +277,7 @@ async function decodeDracoPrimitive(
 
     const positions = readFloatAttr(attrIds.POSITION, 3);
     if (!positions) throw new Error('Draco mesh missing POSITION attribute');
+    const normals = readFloatAttr(attrIds.NORMAL, 3);
     const uvs = readFloatAttr(attrIds.TEXCOORD_0, 2);
 
     let colors: Float32Array | null = null;
@@ -288,7 +290,7 @@ async function decodeDracoPrimitive(
       }
     }
 
-    return { positions, uvs, colors, colorComponents, indices };
+    return { positions, normals, uvs, colors, colorComponents, indices };
   } finally {
     draco.destroy(dracoBuf);
     draco.destroy(dracoMesh);
@@ -439,8 +441,32 @@ function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedP
     }
   }
 
+  // Compute area-weighted smooth normals on the welded spatial vertices so UV seams stay seamlessly smooth
+  const spNormX = new Float32Array(spCount.length);
+  const spNormY = new Float32Array(spCount.length);
+  const spNormZ = new Float32Array(spCount.length);
+  const outIdxArr = Uint32Array.from(outIdx);
+  for (let t = 0; t + 2 < outIdxArr.length; t += 3) {
+    const s0 = outSpatialId[outIdxArr[t]];
+    const s1 = outSpatialId[outIdxArr[t + 1]];
+    const s2 = outSpatialId[outIdxArr[t + 2]];
+    const inv0 = 1 / spCount[s0], inv1 = 1 / spCount[s1], inv2 = 1 / spCount[s2];
+    const x0 = spSumX[s0] * inv0, y0 = spSumY[s0] * inv0, z0 = spSumZ[s0] * inv0;
+    const x1 = spSumX[s1] * inv1, y1 = spSumY[s1] * inv1, z1 = spSumZ[s1] * inv1;
+    const x2 = spSumX[s2] * inv2, y2 = spSumY[s2] * inv2, z2 = spSumZ[s2] * inv2;
+    const ax = x1 - x0, ay = y1 - y0, az = z1 - z0;
+    const bx = x2 - x0, by = y2 - y0, bz = z2 - z0;
+    const nx = ay * bz - az * by;
+    const ny = az * bx - ax * bz;
+    const nz = ax * by - ay * bx;
+    spNormX[s0] += nx; spNormY[s0] += ny; spNormZ[s0] += nz;
+    spNormX[s1] += nx; spNormY[s1] += ny; spNormZ[s1] += nz;
+    spNormX[s2] += nx; spNormY[s2] += ny; spNormZ[s2] += nz;
+  }
+
   const newVCount = outCount.length;
   const outPos = new Float32Array(newVCount * 3);
+  const outNorm = new Float32Array(newVCount * 3);
   const outUvs = uvs ? new Float32Array(newVCount * 2) : null;
   const outCols = cols ? new Float32Array(newVCount * cComp) : null;
 
@@ -450,6 +476,12 @@ function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedP
     outPos[i * 3] = spSumX[sIdx] * spInv;
     outPos[i * 3 + 1] = spSumY[sIdx] * spInv;
     outPos[i * 3 + 2] = spSumZ[sIdx] * spInv;
+
+    const nx = spNormX[sIdx], ny = spNormY[sIdx], nz = spNormZ[sIdx];
+    const nLen = Math.hypot(nx, ny, nz) || 1;
+    outNorm[i * 3] = nx / nLen;
+    outNorm[i * 3 + 1] = ny / nLen;
+    outNorm[i * 3 + 2] = nz / nLen;
 
     const inv = 1 / outCount[i];
     if (outUvs) {
@@ -465,10 +497,11 @@ function decimatePrimitive(prim: DecodedPrimitive, targetTris: number): DecodedP
 
   return {
     positions: outPos,
+    normals: outNorm,
     uvs: outUvs,
     colors: outCols,
     colorComponents: cComp,
-    indices: Uint32Array.from(outIdx),
+    indices: outIdxArr,
   };
 }
 
@@ -641,6 +674,10 @@ export async function optimizeGlbIfNeeded(rawBuf: Buffer): Promise<Buffer> {
         );
       } else {
         const positions = readAccessorAsFloat32(gltf, binBuf, prim.attributes.POSITION);
+        const normals =
+          prim.attributes.NORMAL !== undefined
+            ? readAccessorAsFloat32(gltf, binBuf, prim.attributes.NORMAL)
+            : null;
         const uvs =
           prim.attributes.TEXCOORD_0 !== undefined
             ? readAccessorAsFloat32(gltf, binBuf, prim.attributes.TEXCOORD_0)
@@ -660,7 +697,7 @@ export async function optimizeGlbIfNeeded(rawBuf: Buffer): Promise<Buffer> {
           indices = new Uint32Array(vc);
           for (let i = 0; i < vc; i++) indices[i] = i;
         }
-        decoded = { positions, uvs, colors, colorComponents, indices };
+        decoded = { positions, normals, uvs, colors, colorComponents, indices };
       }
 
       const primTris = Math.floor(decoded.indices.length / 3);
@@ -697,6 +734,23 @@ export async function optimizeGlbIfNeeded(rawBuf: Buffer): Promise<Buffer> {
         min: [minX, minY, minZ],
         max: [maxX, maxY, maxZ],
       });
+
+      // NORMAL (preserved from Blender/artist or computed smoothly on welded spatial vertices!)
+      if (decoded.normals && decoded.normals.length === vCount * 3) {
+        const normBuf = Buffer.from(
+          decoded.normals.buffer,
+          decoded.normals.byteOffset,
+          decoded.normals.byteLength,
+        );
+        const normBv = appendBufferView(normBuf, 34962);
+        attrs.NORMAL = newAccessors.length;
+        newAccessors.push({
+          bufferView: normBv,
+          componentType: 5126,
+          count: vCount,
+          type: 'VEC3',
+        });
+      }
 
       // TEXCOORD_0
       if (decoded.uvs) {

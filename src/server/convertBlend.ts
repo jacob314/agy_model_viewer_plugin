@@ -74,22 +74,60 @@ export function findBlenderBinary(): string | null {
 
 /**
  * Blender Python script compatible with Blender 3.x / 4.x / 5.x.
- * Exports visible renderable geometry with modifiers applied, textures & materials intact,
- * excluding camera/light/animation clutter. Falls back to all objects if all were hidden.
+ * Uses Blender's native Quadric-Error Collapse DECIMATE modifier (curvature-aware + UV-seam safe)
+ * when total triangles exceed 260k so exported geometry & smooth normals match Blender's viewport
+ * cleanly instead of falling back to coarse voxel clustering.
  */
 const BLEND_TO_GLB_PY = `
 import bpy, sys, os
 
 out_path = sys.argv[-1]
 props = set(bpy.ops.export_scene.gltf.get_rna_type().properties.keys())
+TARGET_TRIS = 260000
 
-def has_visible_geo():
+def get_geo_objects(visible_only):
+    res = []
     for obj in bpy.context.scene.objects:
-        if obj.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'} and obj.visible_get():
-            return True
-    return False
+        if obj.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'}:
+            if (not visible_only) or obj.visible_get():
+                res.append(obj)
+    return res
 
-use_vis = has_visible_geo()
+vis_geo = get_geo_objects(True)
+use_vis = len(vis_geo) > 0
+target_objs = vis_geo if use_vis else get_geo_objects(False)
+
+# Count evaluated triangles across mesh objects and apply Blender's native QEM Decimate if > TARGET_TRIS
+deps = bpy.context.evaluated_depsgraph_get()
+tri_counts = {}
+total_tris = 0
+for obj in target_objs:
+    if obj.type != 'MESH':
+        continue
+    ev = obj.evaluated_get(deps)
+    me = ev.to_mesh()
+    if me:
+        me.calc_loop_triangles()
+        c = len(me.loop_triangles)
+        tri_counts[obj.name] = c
+        total_tris += c
+        ev.to_mesh_clear()
+
+if total_tris > TARGET_TRIS:
+    ratio = max(0.04, min(0.95, TARGET_TRIS / float(total_tris)))
+    for obj in target_objs:
+        if obj.type != 'MESH':
+            continue
+        if tri_counts.get(obj.name, 0) > 12000:
+            mod = obj.modifiers.new('M3DV_QEM_Decimate', 'DECIMATE')
+            mod.decimate_type = 'COLLAPSE'
+            mod.ratio = ratio
+            mod.use_collapse_triangulate = True
+            if hasattr(mod, 'delimit') and obj.data.uv_layers:
+                try:
+                    mod.delimit = {'UV'}
+                except Exception:
+                    pass
 
 kwargs = {
     'filepath': out_path,
@@ -142,7 +180,7 @@ export async function convertBlendToOptimizedGlb(
   const cacheDir = path.join(dataDir, 'blend_cache');
   const hash = crypto
     .createHash('sha256')
-    .update(`${blendAbsPath}|${stat.mtimeMs}|${stat.size}`)
+    .update(`qem-v2|${blendAbsPath}|${stat.mtimeMs}|${stat.size}`)
     .digest('hex')
     .slice(0, 20);
   const cachePath = path.join(cacheDir, `${hash}.glb`);

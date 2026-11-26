@@ -378,7 +378,7 @@ function buildViewerSessionResult(
 const server = new McpServer(
   {
     name: 'model3d-viewer',
-    version: '1.5.0',
+    version: '1.5.1',
   },
   {
     capabilities: {

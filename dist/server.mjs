@@ -23455,7 +23455,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var OPTIMIZE_SIZE_THRESHOLD = 6 * 1024 * 1024;
-var MAX_TOTAL_TRIANGLES = 24e4;
+var MAX_TOTAL_TRIANGLES = 32e4;
 var TEXTURE_RESIZE_THRESHOLD = 350 * 1024;
 var MAX_TEXTURE_DIM = 1024;
 var dracoModulePromise = null;
@@ -23654,6 +23654,7 @@ async function decodeDracoPrimitive(bin, bv, attrIds) {
     };
     const positions = readFloatAttr(attrIds.POSITION, 3);
     if (!positions) throw new Error("Draco mesh missing POSITION attribute");
+    const normals = readFloatAttr(attrIds.NORMAL, 3);
     const uvs = readFloatAttr(attrIds.TEXCOORD_0, 2);
     let colors = null;
     let colorComponents = 3;
@@ -23664,7 +23665,7 @@ async function decodeDracoPrimitive(bin, bv, attrIds) {
         colors = readFloatAttr(attrIds.COLOR_0, colorComponents);
       }
     }
-    return { positions, uvs, colors, colorComponents, indices };
+    return { positions, normals, uvs, colors, colorComponents, indices };
   } finally {
     draco.destroy(dracoBuf);
     draco.destroy(dracoMesh);
@@ -23792,8 +23793,36 @@ function decimatePrimitive(prim, targetTris) {
       outIdx.push(origToOut[a], origToOut[b], origToOut[c]);
     }
   }
+  const spNormX = new Float32Array(spCount.length);
+  const spNormY = new Float32Array(spCount.length);
+  const spNormZ = new Float32Array(spCount.length);
+  const outIdxArr = Uint32Array.from(outIdx);
+  for (let t = 0; t + 2 < outIdxArr.length; t += 3) {
+    const s0 = outSpatialId[outIdxArr[t]];
+    const s1 = outSpatialId[outIdxArr[t + 1]];
+    const s2 = outSpatialId[outIdxArr[t + 2]];
+    const inv0 = 1 / spCount[s0], inv1 = 1 / spCount[s1], inv2 = 1 / spCount[s2];
+    const x0 = spSumX[s0] * inv0, y0 = spSumY[s0] * inv0, z0 = spSumZ[s0] * inv0;
+    const x1 = spSumX[s1] * inv1, y1 = spSumY[s1] * inv1, z1 = spSumZ[s1] * inv1;
+    const x2 = spSumX[s2] * inv2, y2 = spSumY[s2] * inv2, z2 = spSumZ[s2] * inv2;
+    const ax = x1 - x0, ay = y1 - y0, az = z1 - z0;
+    const bx = x2 - x0, by = y2 - y0, bz = z2 - z0;
+    const nx = ay * bz - az * by;
+    const ny = az * bx - ax * bz;
+    const nz = ax * by - ay * bx;
+    spNormX[s0] += nx;
+    spNormY[s0] += ny;
+    spNormZ[s0] += nz;
+    spNormX[s1] += nx;
+    spNormY[s1] += ny;
+    spNormZ[s1] += nz;
+    spNormX[s2] += nx;
+    spNormY[s2] += ny;
+    spNormZ[s2] += nz;
+  }
   const newVCount = outCount.length;
   const outPos = new Float32Array(newVCount * 3);
+  const outNorm = new Float32Array(newVCount * 3);
   const outUvs = uvs ? new Float32Array(newVCount * 2) : null;
   const outCols = cols ? new Float32Array(newVCount * cComp) : null;
   for (let i = 0; i < newVCount; i++) {
@@ -23802,6 +23831,11 @@ function decimatePrimitive(prim, targetTris) {
     outPos[i * 3] = spSumX[sIdx] * spInv;
     outPos[i * 3 + 1] = spSumY[sIdx] * spInv;
     outPos[i * 3 + 2] = spSumZ[sIdx] * spInv;
+    const nx = spNormX[sIdx], ny = spNormY[sIdx], nz = spNormZ[sIdx];
+    const nLen = Math.hypot(nx, ny, nz) || 1;
+    outNorm[i * 3] = nx / nLen;
+    outNorm[i * 3 + 1] = ny / nLen;
+    outNorm[i * 3 + 2] = nz / nLen;
     const inv = 1 / outCount[i];
     if (outUvs) {
       outUvs[i * 2] = outSumU[i] * inv;
@@ -23815,10 +23849,11 @@ function decimatePrimitive(prim, targetTris) {
   }
   return {
     positions: outPos,
+    normals: outNorm,
     uvs: outUvs,
     colors: outCols,
     colorComponents: cComp,
-    indices: Uint32Array.from(outIdx)
+    indices: outIdxArr
   };
 }
 function optimizeImageBuffer(imgBytes, mimeType, preferJpeg) {
@@ -23951,6 +23986,7 @@ async function optimizeGlbIfNeeded(rawBuf) {
         );
       } else {
         const positions = readAccessorAsFloat32(gltf, binBuf, prim.attributes.POSITION);
+        const normals = prim.attributes.NORMAL !== void 0 ? readAccessorAsFloat32(gltf, binBuf, prim.attributes.NORMAL) : null;
         const uvs = prim.attributes.TEXCOORD_0 !== void 0 ? readAccessorAsFloat32(gltf, binBuf, prim.attributes.TEXCOORD_0) : null;
         let colors = null;
         let colorComponents = 3;
@@ -23967,7 +24003,7 @@ async function optimizeGlbIfNeeded(rawBuf) {
           indices = new Uint32Array(vc);
           for (let i = 0; i < vc; i++) indices[i] = i;
         }
-        decoded = { positions, uvs, colors, colorComponents, indices };
+        decoded = { positions, normals, uvs, colors, colorComponents, indices };
       }
       const primTris = Math.floor(decoded.indices.length / 3);
       if (totalTris > MAX_TOTAL_TRIANGLES && primTris > 2e4) {
@@ -24001,6 +24037,21 @@ async function optimizeGlbIfNeeded(rawBuf) {
         min: [minX, minY, minZ],
         max: [maxX, maxY, maxZ]
       });
+      if (decoded.normals && decoded.normals.length === vCount * 3) {
+        const normBuf = Buffer.from(
+          decoded.normals.buffer,
+          decoded.normals.byteOffset,
+          decoded.normals.byteLength
+        );
+        const normBv = appendBufferView(normBuf, 34962);
+        attrs.NORMAL = newAccessors.length;
+        newAccessors.push({
+          bufferView: normBv,
+          componentType: 5126,
+          count: vCount,
+          type: "VEC3"
+        });
+      }
       if (decoded.uvs) {
         const uvBuf = Buffer.from(decoded.uvs.buffer, decoded.uvs.byteOffset, decoded.uvs.byteLength);
         const uvBv = appendBufferView(uvBuf, 34962);
@@ -24156,14 +24207,51 @@ import bpy, sys, os
 
 out_path = sys.argv[-1]
 props = set(bpy.ops.export_scene.gltf.get_rna_type().properties.keys())
+TARGET_TRIS = 260000
 
-def has_visible_geo():
+def get_geo_objects(visible_only):
+    res = []
     for obj in bpy.context.scene.objects:
-        if obj.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'} and obj.visible_get():
-            return True
-    return False
+        if obj.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'}:
+            if (not visible_only) or obj.visible_get():
+                res.append(obj)
+    return res
 
-use_vis = has_visible_geo()
+vis_geo = get_geo_objects(True)
+use_vis = len(vis_geo) > 0
+target_objs = vis_geo if use_vis else get_geo_objects(False)
+
+# Count evaluated triangles across mesh objects and apply Blender's native QEM Decimate if > TARGET_TRIS
+deps = bpy.context.evaluated_depsgraph_get()
+tri_counts = {}
+total_tris = 0
+for obj in target_objs:
+    if obj.type != 'MESH':
+        continue
+    ev = obj.evaluated_get(deps)
+    me = ev.to_mesh()
+    if me:
+        me.calc_loop_triangles()
+        c = len(me.loop_triangles)
+        tri_counts[obj.name] = c
+        total_tris += c
+        ev.to_mesh_clear()
+
+if total_tris > TARGET_TRIS:
+    ratio = max(0.04, min(0.95, TARGET_TRIS / float(total_tris)))
+    for obj in target_objs:
+        if obj.type != 'MESH':
+            continue
+        if tri_counts.get(obj.name, 0) > 12000:
+            mod = obj.modifiers.new('M3DV_QEM_Decimate', 'DECIMATE')
+            mod.decimate_type = 'COLLAPSE'
+            mod.ratio = ratio
+            mod.use_collapse_triangulate = True
+            if hasattr(mod, 'delimit') and obj.data.uv_layers:
+                try:
+                    mod.delimit = {'UV'}
+                except Exception:
+                    pass
 
 kwargs = {
     'filepath': out_path,
@@ -24203,7 +24291,7 @@ function pruneCacheDir(cacheDir) {
 async function convertBlendToOptimizedGlb(blendAbsPath, dataDir) {
   const stat = fs2.statSync(blendAbsPath);
   const cacheDir = path2.join(dataDir, "blend_cache");
-  const hash = crypto.createHash("sha256").update(`${blendAbsPath}|${stat.mtimeMs}|${stat.size}`).digest("hex").slice(0, 20);
+  const hash = crypto.createHash("sha256").update(`qem-v2|${blendAbsPath}|${stat.mtimeMs}|${stat.size}`).digest("hex").slice(0, 20);
   const cachePath = path2.join(cacheDir, `${hash}.glb`);
   if (fs2.existsSync(cachePath)) {
     return fs2.readFileSync(cachePath);
@@ -25046,7 +25134,7 @@ function buildViewerSessionResult(layout, args) {
 var server = new McpServer(
   {
     name: "model3d-viewer",
-    version: "1.5.0"
+    version: "1.5.1"
   },
   {
     capabilities: {
